@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every Apple silicon macOS GitHub runs, from Koe's oldest (14).
+        os: [macos-14, macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # build.sh numbers the build from the commit count
+      # FluidAudio wants a Swift 6 toolchain: the newest Xcode on the image.
+      - name: Newest Xcode
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          swift --version
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ matrix.os }}-${{ hashFiles('Package.resolved') }}
+      - name: Test (build, self-test, strings, scripts)
+        run: scripts/test.sh
+      - name: The eval build compiles too
+        run: KOE_EVAL=1 SIGN=- scripts/build.sh
+      - name: Check the bundle
+        run: |
+          lipo -archs build/Koe.app/Contents/MacOS/Koe | grep -qx arm64
+          test "$(find build/Koe.app/Contents/Resources -name Localizable.strings | wc -l)" -eq 10
+          /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" build/Koe.app/Contents/Info.plist | grep -qx 14.0
+      # Every pill and the dictation's indicator, as this macOS draws them, in
+      # English, French, German and Japanese.
+      - name: Draw the pills
+        run: |
+          for lang in en fr de ja; do
+            build/Koe.app/Contents/MacOS/Koe --render-toasts "$RUNNER_TEMP/pills/$lang" -AppleLanguages "($lang)"
+          done
+      - name: Keep the pictures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pills-${{ matrix.os }}
+          path: ${{ runner.temp }}/pills
+          if-no-files-found: warn
