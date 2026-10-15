@@ -463,10 +463,16 @@ struct SettingsView: View {
                             .accessibilityLabel(Words.say("Remove %@", word))
                     }
                 }
-                HStack {
-                    TextField(Words.say("Add a word"), text: $newWord)
+                // A field that looks like one: a form's TextField shows its
+                // title as a label and the box itself barely at all.
+                HStack(spacing: 8) {
+                    TextField("", text: $newWord, prompt: Text(Words.say("Add a word")))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
                         .onSubmit(add)
-                    Button(Words.say("Add"), action: add).disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button(Words.say("Add"), action: add)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
 
