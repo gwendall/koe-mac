@@ -143,19 +143,30 @@ struct StepRow: View {
 }
 
 // Progress in the brand's gradient.
+// Progress in the brand's gradient; without a share, a stretch of it that
+// runs back and forth (work under way, of no known length).
 struct CandyBar: View {
-    let share: Double
+    let share: Double?
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.secondary.opacity(0.18))
-                Capsule().fill(Brand.gradient).frame(width: max(8, geometry.size.width * share))
+                if let share {
+                    Capsule().fill(Brand.gradient).frame(width: max(8, geometry.size.width * share))
+                } else {
+                    TimelineView(.animation) { context in
+                        let phase = (sin(context.date.timeIntervalSinceReferenceDate * 2.2) + 1) / 2
+                        let width = geometry.size.width * 0.28
+                        Capsule().fill(Brand.gradient).frame(width: width)
+                            .offset(x: (geometry.size.width - width) * phase)
+                    }
+                }
             }
         }
         .frame(height: 6)
         .accessibilityElement()
         .accessibilityLabel(Words.say("Download"))
-        .accessibilityValue(Words.percent(Int(share * 100)))
+        .accessibilityValue(share.map { Words.percent(Int($0 * 100)) } ?? "")
     }
 }
 
@@ -275,6 +286,8 @@ struct Welcome: View {
                 + Words.say("Downloading once (630 MB): %@. You can go on meanwhile.", Words.percent(Int(share * 100)))
         } else if state.modelReady {
             detail = Words.say("Ready, on this Mac. Works offline.")
+        } else if state.modelPreparing {
+            detail = Words.say("Preparing it for this Mac's Neural Engine: the first time only, it can take a minute.")
         } else {
             detail = Words.say("Getting ready…")
         }
@@ -283,6 +296,8 @@ struct Welcome: View {
                     button: state.modelFailed ? Words.say("Try Again") : nil) { state.retryModel() }
             if let share = state.modelShare {
                 CandyBar(share: share).padding(.leading, 30)
+            } else if state.modelPreparing {
+                CandyBar(share: nil).padding(.leading, 30)
             }
         }
     }

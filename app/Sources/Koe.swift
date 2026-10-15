@@ -611,6 +611,8 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Task { [weak self] in
             guard let self else { return }
             let started = Date()
+            self.state.modelPreparing = true
+            defer { self.state.modelPreparing = false }
             do {
                 try await transcriber.load(directory)
                 self.state.modelReady = true

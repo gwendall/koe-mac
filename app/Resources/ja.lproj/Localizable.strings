@@ -155,3 +155,4 @@
 "Your words" = "あなたの言葉";
 "Add names and jargon to the dictionary, and Koe spells them your way." = "名前や専門用語を辞書に加えると、Koeはあなたの書き方で書きます。";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra：moondream（NVIDIA Parakeet TDT 0.6B v3をもとに作成）。Core ML：FluidInference。CC BY 4.0。";
+"Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "このMacのNeural Engine向けに準備しています。初回のみ、1分ほどかかることがあります。";

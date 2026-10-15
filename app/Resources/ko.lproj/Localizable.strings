@@ -155,3 +155,4 @@
 "Your words" = "나만의 단어";
 "Add names and jargon to the dictionary, and Koe spells them your way." = "이름과 전문 용어를 사전에 추가하면 Koe가 내 방식대로 적습니다.";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra: moondream (NVIDIA Parakeet TDT 0.6B v3 기반). Core ML: FluidInference. CC BY 4.0.";
+"Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "이 Mac의 Neural Engine에 맞게 준비하는 중입니다. 처음 한 번만, 1분 정도 걸릴 수 있습니다.";

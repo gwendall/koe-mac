@@ -12,6 +12,8 @@ final class KoeState: ObservableObject {
     // The voice model.
     @Published var modelShare: Double?
     @Published var modelReady = false
+    // Core ML fitting the model to this Mac's Neural Engine: the first load only, and slow.
+    @Published var modelPreparing = false
     @Published var modelFailed = false
     // The shortcut, and recording a new one.
     @Published var shortcut = Shortcut.saved
