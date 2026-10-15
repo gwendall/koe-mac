@@ -2,6 +2,21 @@ import AppKit
 
 let args = Array(CommandLine.arguments.dropFirst())
 
+// `Koe --version`: what the updater checks a download says.
+if args.first == "--version" {
+    print("koe \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")")
+    exit(0)
+}
+
+if args.first == "--self-test" {
+    exit(MainActor.assumeIsolated { SelfTest.run() })
+}
+
+// The pixel font, for the windows' titles too.
+if let font = Bundle.main.url(forResource: "Silkscreen-Regular", withExtension: "ttf") {
+    CTFontManagerRegisterFontsForURL(font as CFURL, .process, nil)
+}
+
 // `Koe --render-sounds <dir>` writes every sound as a WAV file, to listen to them.
 if args.first == "--render-sounds", args.count > 1 {
     let dir = URL(fileURLWithPath: args[1])

@@ -1,9 +1,14 @@
 import AppKit
 import ServiceManagement
 
-// The menu bar app. Hold fn (or press it, then press again) and talk: the
-// words land where the cursor is. A click on the bubble opens the menu: the
-// last dictations, and the few things one can change.
+// The menu bar app. Hold the shortcut (fn by default) and talk: the words
+// land where the cursor is. A click on the bubble opens the menu: the last
+// dictations, Settings, updates.
+//
+// One dictation at a time, owned here on the main actor: idle, listening,
+// transcribing. Its audio is in the journal from the first second until the
+// words are delivered (Journal.swift); where they go is Target's call
+// (Target.swift); how, Paster's (Paster.swift).
 @MainActor
 final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -11,161 +16,346 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let hotkey = Hotkey()
     private let recorder = Recorder()
     private let transcriber = Transcriber()
+    let state = KoeState()
 
     private enum Phase { case idle, listening, transcribing }
-    private var phase = Phase.idle
+    private var phase = Phase.idle { didSet { phaseChanged() } }
 
-    // The model: where it is once there, and how far its download got.
-    private var modelDirectory: URL?
-    private var modelLoaded = false
-    private var downloadShare: Double?
-    private var downloadFailed = false
-
+    // The dictation under way.
+    private var journal: Journal?
+    private var origin: Target.Origin?
     private var startedAt = Date()
+    private var dictation = 0           // bumped by every start and cancel: stale results are dropped
+    private var lastHeard = Date()      // the last time the voice moved the bars
+    private var warnedSilence = false
+    private var limitTimer: Timer?
+    private var activity: NSObjectProtocol?
     private var resetFace: DispatchWorkItem?
-    private var permissionTimer: Timer?
 
+    private var permissionTimer: Timer?
+    private var updateTimer: Timer?
+    private var poweringOff = false
     private var sounds: [Chime.Sound: NSSound] = [:]
     private var playing: NSSound?
 
-    // Settings, few on purpose.
-    private var muted: Bool {
-        get { UserDefaults.standard.bool(forKey: "muted") }
-        set { UserDefaults.standard.set(newValue, forKey: "muted") }
-    }
-    // Hold fn and talk (the default), or press fn to start and again to stop.
-    private var toggles: Bool {
-        get { UserDefaults.standard.bool(forKey: "toggles") }
-        set { UserDefaults.standard.set(newValue, forKey: "toggles") }
-    }
+    // Nothing longer than this: memory stays bounded, and Koe never listens forever.
+    private static let longest: TimeInterval = 30 * 60
 
-    // The last dictations, newest first, for the menu.
-    private struct Dictation: Codable {
-        let text: String
-        let at: Date
-    }
-    private static let kept = 5
-    private var recent: [Dictation] {
-        get {
-            guard let data = UserDefaults.standard.data(forKey: "recent") else { return [] }
-            return (try? JSONDecoder().decode([Dictation].self, from: data)) ?? []
-        }
-        set { UserDefaults.standard.set(try? JSONEncoder().encode(Array(newValue.prefix(Self.kept))), forKey: "recent") }
-    }
+    // MARK: - Launch
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // One Koe at a time: two would hear the shortcut twice and type twice.
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "fm.koe.mac")
+            .filter { $0.processIdentifier != getpid() }
+        if let other = others.first {
+            other.activate()
+            NSApp.terminate(nil)
+            return
+        }
+        Log.note("launch", ["version": Update.running])
+
         show(Pixels.ready)
         item.button?.setAccessibilityLabel("Koe")
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
 
-        hotkey.onDown = { [weak self] in self?.fnDown() }
-        hotkey.onUp = { [weak self] in self?.fnUp() }
-        hotkey.onChord = { [weak self] in self?.cancel() }
-        recorder.onLevel = { [weak self] level in self?.toast.setLevel(level) }
-
-        if !UserDefaults.standard.bool(forKey: "ranBefore") {
-            UserDefaults.standard.set(true, forKey: "ranBefore")
-            after(0.6) { [weak self] in self?.pop(Toast.hello) }
+        wireState()
+        wireHotkey()
+        recorder.onLevel = { [weak self] level in self?.heard(level) }
+        recorder.onInterrupted = { [weak self] in
+            Log.note("microphone", ["changed": "while listening"])
+            self?.finish()
         }
-        watchKeyboard()
+
+        let center = NSWorkspace.shared.notificationCenter
+        center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { if self?.phase == .listening { self?.finish() } }
+        }
+        center.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.poweringOff = true }
+        }
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkPermissions() }
+        }
+        NotificationCenter.default.addObserver(forName: .koeShowSettings, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.openSettings() }
+        }
+
+        checkPermissions()
+        watchPermissions()
         prepareModel()
+        scheduleUpdates()
+
+        if !UserDefaults.standard.bool(forKey: "welcomed") {
+            Windows.showWelcome(state)
+        } else if state.microphone == false || !state.accessibility {
+            pop(Toast.note(Words.say("KOE NEEDS YOU"), Words.say("Click the bubble, then Settings")))
+        }
     }
 
-    // MARK: - fn
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings()
+        return false
+    }
 
-    private func fnDown() {
+    // Never quit in the middle of a dictation; at shutdown the journal keeps it.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard phase != .idle, !poweringOff else { return .terminateNow }
+        play(.refused)
+        pop(Toast.note(Words.say("ONE MOMENT"), Words.say("Koe is still working on your words")))
+        return .terminateCancel
+    }
+
+    private func wireState() {
+        state.askMicrophone = { [weak self] in
+            Recorder.askPermission { _ in self?.checkPermissions() }
+        }
+        state.openMicrophoneSettings = {
+            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+        }
+        state.openAccessibility = { [weak self] in
+            // Puts Koe in the list, so it can be switched on.
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            if !AXIsProcessTrustedWithOptions(options) {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+            }
+            self?.watchPermissions()
+        }
+        state.startCapture = { [weak self] in self?.captureShortcut() }
+        state.cancelCapture = { [weak self] in self?.hotkey.cancelCapture() }
+        state.retryModel = { [weak self] in self?.prepareModel() }
+        state.setLogin = { [weak self] on in self?.setLogin(on) }
+        state.copyReport = { [weak self] in self?.copyReport() }
+        state.finishWelcome = { UserDefaults.standard.set(true, forKey: "welcomed") }
+        state.login = SMAppService.mainApp.status == .enabled
+        state.inputs = Devices.inputs()
+    }
+
+    // MARK: - The shortcut
+
+    private func wireHotkey() {
+        hotkey.onDown = { [weak self] in self?.shortcutDown() }
+        hotkey.onUp = { [weak self] in self?.shortcutUp() }
+        hotkey.onChord = { [weak self] in
+            // fn + another key: a shortcut of its own. Only a dictation just
+            // started is dropped; one well under way is kept.
+            guard let self, self.phase == .listening, Date().timeIntervalSince(self.startedAt) < 0.6 else { return }
+            self.cancel(quietly: true)
+        }
+        hotkey.onEscape = { [weak self] in self?.cancel(quietly: false) }
+    }
+
+    private func shortcutDown() {
         switch phase {
         case .idle: start()
-        case .listening where toggles: finish()
-        default: break
+        case .listening where state.effectiveToggles: finish()
+        default: break // one dictation at a time; still typing the last one
         }
     }
 
-    private func fnUp() {
-        guard phase == .listening, !toggles else { return }
+    private func shortcutUp() {
+        guard phase == .listening, !state.effectiveToggles else { return }
         finish()
     }
 
+    private func captureShortcut() {
+        state.captureError = nil
+        state.capturing = true
+        hotkey.capture { [weak self] shortcut in
+            guard let self else { return }
+            self.state.capturing = false
+            guard let shortcut else { return }
+            if let refusal = shortcut.refusal {
+                self.state.captureError = refusal
+                self.play(.refused)
+                return
+            }
+            Shortcut.saved = shortcut
+            self.hotkey.shortcut = shortcut
+            self.state.shortcut = shortcut
+            self.play(.check(true))
+            Log.note("shortcut", ["kind": shortcut.kind.rawValue])
+        }
+    }
+
+    // MARK: - A dictation
+
     private func start() {
-        guard modelLoaded else {
+        guard state.modelReady else {
             play(.refused)
-            if let share = downloadShare {
+            if state.modelFailed {
+                pop(Toast.note(Words.say("NO VOICE MODEL"), Words.say("Click the bubble to try again")))
+            } else if let share = state.modelShare {
                 pop(Toast.note(Words.say("ALMOST READY"), Words.say("Koe's voice model is at %@", Words.percent(Int(share * 100)))))
             } else {
-                pop(Toast.note(Words.say("ALMOST READY"), Words.say("Koe is loading its voice model")))
+                pop(Toast.note(Words.say("ALMOST READY"), Words.say("Koe is waking its voice model")))
             }
             return
         }
         switch Recorder.permission {
+        case .authorized: break
         case .notDetermined:
-            Recorder.askPermission { [weak self] granted in
-                if !granted { self?.microphoneRefused() }
-            }
-            return
-        case .denied, .restricted:
-            microphoneRefused()
+            Recorder.askPermission { [weak self] _ in self?.checkPermissions() }
             return
         default:
-            break
+            play(.refused)
+            pop(Toast.note(Words.say("MICROPHONE OFF"), Words.say("Allow Koe in Privacy & Security")))
+            state.openMicrophoneSettings()
+            return
         }
+        let journal: Journal
+        do {
+            journal = try Journal()
+        } catch {
+            play(.refused)
+            pop(Toast.note(Words.say("CAN'T SAVE AUDIO"), Words.say("Your disk may be full")))
+            return
+        }
+        recorder.onSamples = { [weak journal] chunk in journal?.append(chunk) }
         do {
             try recorder.start()
         } catch {
+            journal.discard()
             play(.refused)
-            pop(Toast.note(Words.say("NO MICROPHONE"), Words.say("Plug one in, or pick one in Sound settings")))
+            pop(Toast.note(Words.say("NO MICROPHONE"), Words.say("Plug one in, or pick one in Settings")))
+            Log.note("microphone", ["start": "failed"])
             return
         }
-        phase = .listening
+        dictation += 1
+        self.journal = journal
+        origin = Target.origin()
         startedAt = Date()
+        lastHeard = Date()
+        warnedSilence = false
+        phase = .listening
         resetFace?.cancel()
         show(Pixels.listening)
         play(.start)
         pop(Toast.listening)
+        limitTimer = Timer.scheduledTimer(withTimeInterval: Self.longest, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.finish() }
+        }
+    }
+
+    // The bars, and "no sound" when a microphone sends nothing for 3 s after
+    // a 5 s grace (Bluetooth microphones take a moment to wake).
+    private func heard(_ level: Float) {
+        guard phase == .listening else { return }
+        toast.setLevel(level)
+        if level > 0.05 {
+            lastHeard = Date()
+            if warnedSilence {
+                warnedSilence = false
+                toast.setCaption(Words.say("Talk, it types"))
+            }
+        } else if !warnedSilence, Date().timeIntervalSince(startedAt) > 5, Date().timeIntervalSince(lastHeard) > 3 {
+            warnedSilence = true
+            toast.setCaption(Words.say("No sound: check your microphone"))
+        }
     }
 
     private func finish() {
-        guard phase == .listening else { return }
+        guard phase == .listening, let journal else { return }
+        limitTimer?.invalidate()
         let samples = recorder.stop()
+        journal.saved()
         toast.dismiss()
         play(.stop)
-        // A tap on fn, not a dictation.
-        guard Date().timeIntervalSince(startedAt) > 0.25, samples.count > 4_000 else {
+        let seconds = Date().timeIntervalSince(startedAt)
+        // A tap on the shortcut, not a dictation.
+        guard seconds > 0.25, samples.count > 4_000 else {
+            journal.discard()
+            self.journal = nil
             phase = .idle
             show(Pixels.ready)
             return
         }
-        phase = .transcribing
-        Task { [weak self] in
-            guard let self else { return }
-            let text = (try? await transcriber.transcribe(samples)) ?? ""
-            self.typed(text)
-        }
-    }
-
-    // fn + another key: a shortcut of its own, not a dictation.
-    private func cancel() {
-        guard phase == .listening else { return }
-        _ = recorder.stop()
-        toast.dismiss()
-        phase = .idle
-        show(Pixels.ready)
-    }
-
-    private func typed(_ text: String) {
-        phase = .idle
-        guard !text.isEmpty else {
+        if Recorder.isSilent(samples) {
+            journal.discard()
+            self.journal = nil
+            phase = .idle
             show(Pixels.ready)
             play(.refused)
-            pop(Toast.note(Words.say("NOTHING HEARD"), Words.say("Hold fn and talk")))
+            pop(Toast.note(Words.say("NO SOUND"), Words.say("The microphone sent nothing. Check it in Settings")))
+            Log.note("dictation", ["silent": true, "seconds": Int(seconds)])
             return
         }
-        Paster.type(text)
-        recent = [Dictation(text: text, at: Date())] + recent
-        show(Pixels.typed)
-        play(.typed)
-        pop(Toast.typed)
+        phase = .transcribing
+        let current = dictation
+        let origin = self.origin ?? Target.origin()
+        Task { [weak self] in
+            guard let self else { return }
+            let text = await self.transcribe(samples)
+            guard self.dictation == current else { return } // cancelled meanwhile
+            guard let text else {
+                // Kept in the journal: the menu offers it again.
+                self.journal = nil
+                self.phase = .idle
+                self.show(Pixels.ready)
+                self.play(.refused)
+                self.pop(Toast.note(Words.say("NOT TYPED"), Words.say("Saved. Retry it from the menu")))
+                return
+            }
+            journal.transcribed(text)
+            await self.deliver(text, from: origin, journal: journal)
+        }
+    }
+
+    // The words, or nil if the model failed or took too long.
+    private func transcribe(_ samples: [Float]) async -> String? {
+        let audio = Recorder.trimmed(samples)
+        let seconds = Double(audio.count) / 16_000
+        let deadline = max(120, 2 * seconds + 60)
+        let started = Date()
+        let text: String? = await withTaskGroup(of: String?.self) { group in
+            group.addTask { [transcriber] in try? await transcriber.transcribe(audio) }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(deadline))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        Log.note("transcribed", ["audio": String(format: "%.1f", seconds), "ms": Int(Date().timeIntervalSince(started) * 1000),
+                                 "words": text.map { $0.split(separator: " ").count } ?? -1])
+        guard let text, !text.isEmpty else { return text == nil ? nil : "" }
+        return Vocabulary.correct(text)
+    }
+
+    private func deliver(_ text: String, from origin: Target.Origin, journal: Journal) async {
+        self.journal = nil
+        guard !text.isEmpty else {
+            journal.discard()
+            phase = .idle
+            show(Pixels.ready)
+            play(.refused)
+            pop(Toast.note(Words.say("NOTHING HEARD"), state.howTo))
+            return
+        }
+        let result: Paster.Result
+        if NSApp.isActive, let field = NSApp.keyWindow?.firstResponder as? NSTextView, field.isEditable {
+            // Koe's own window (the welcome's try-it box).
+            field.insertText(text + " ", replacementRange: field.selectedRange())
+            result = .typed
+        } else {
+            result = await Paster.type(text, into: Target.resolve(from: origin), submit: state.submits)
+        }
+        remember(text)
+        journal.discard()
+        phase = .idle
+        Log.note("delivered", ["result": "\(result)".components(separatedBy: "(").first ?? "?"])
+        switch result {
+        case .typed, .probably:
+            show(Pixels.typed)
+            play(.typed)
+            pop(Toast.typed)
+        case .copied(let why):
+            show(Pixels.typed)
+            play(.select)
+            pop(Toast.note(Words.say("COPIED"), Words.say("%@. Paste it with ⌘V", why)))
+        }
         let reset = DispatchWorkItem { [weak self] in
             guard self?.phase == .idle else { return }
             self?.show(Pixels.ready)
@@ -174,63 +364,206 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: reset)
     }
 
-    private func microphoneRefused() {
-        play(.refused)
-        pop(Toast.note(Words.say("MICROPHONE OFF"), Words.say("Allow Koe in Privacy & Security")))
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+    // Escape, or fn with another key.
+    private func cancel(quietly: Bool) {
+        switch phase {
+        case .listening:
+            limitTimer?.invalidate()
+            _ = recorder.stop()
+            toast.dismiss()
+        case .transcribing:
+            break
+        case .idle:
+            return
+        }
+        dictation += 1
+        journal?.discard()
+        journal = nil
+        phase = .idle
+        show(Pixels.ready)
+        if !quietly {
+            play(.stop)
+            pop(Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed")))
+        }
+    }
+
+    private func phaseChanged() {
+        hotkey.escapeActive = phase != .idle
+        state.listening = phase == .listening
+        // No App Nap while Koe has your words.
+        if phase == .idle {
+            if let activity { ProcessInfo.processInfo.endActivity(activity) }
+            activity = nil
+        } else if activity == nil {
+            activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled], reason: "Dictation")
+        }
+    }
+
+    // MARK: - What a past launch left
+
+    // Recordings a crash or a force quit interrupted: finished now, and the
+    // newest words put on the clipboard. Never typed on their own.
+    private func recoverLeftovers() async {
+        let leftovers = Journal.leftovers().filter { $0.pid != getpid() || $0.status == .saved }
+        guard !leftovers.isEmpty, phase == .idle else { return }
+        var newest: String?
+        for var manifest in leftovers {
+            var text = manifest.text
+            if text == nil {
+                let audio = Journal.audio(manifest.id)
+                if audio.count > 4_000, !Recorder.isSilent(audio) { text = await transcribe(audio) }
+            }
+            guard let text, !text.isEmpty else {
+                Journal.remove(manifest.id)
+                continue
+            }
+            manifest.status = .transcribed
+            manifest.text = text
+            Journal.update(manifest)
+            remember(text, at: manifest.startedAt)
+            if newest == nil { newest = text }
+            Journal.remove(manifest.id)
+        }
+        Log.note("recovered", ["count": leftovers.count])
+        if let newest {
+            Paster.copy(newest)
+            pop(Toast.note(Words.say("RECOVERED"), Words.say("Your last dictation is on the clipboard")))
+        }
     }
 
     // MARK: - Permissions and the model
 
-    // fn and ⌘V both need Accessibility. Until it is on, Koe asks once and
-    // checks every two seconds.
-    private func watchKeyboard() {
-        if hotkey.start() { return }
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        after(1.2) { [weak self] in
-            self?.pop(Toast.note(Words.say("ALLOW KOE"), Words.say("Accessibility lets fn start it")))
+    private func checkPermissions() {
+        switch Recorder.permission {
+        case .authorized: state.microphone = true
+        case .notDetermined: state.microphone = nil
+        default: state.microphone = false
         }
-        permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
+        state.accessibility = AXIsProcessTrusted()
+        // Rebuilt when Accessibility comes back after being revoked.
+        if state.accessibility { hotkey.start() } else { hotkey.stop() }
+        state.inputs = Devices.inputs()
+    }
+
+    // Every 1.5 s until both permissions are on: no relaunch needed.
+    private func watchPermissions() {
+        guard permissionTimer == nil else { return }
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] timer in
             MainActor.assumeIsolated {
-                guard let self, self.hotkey.start() else { return }
-                timer.invalidate()
-                self.permissionTimer = nil
-                if self.modelLoaded { self.pop(Toast.hello) }
+                guard let self else { return timer.invalidate() }
+                let before = (self.state.microphone, self.state.accessibility)
+                self.checkPermissions()
+                if self.state.microphone == true, self.state.accessibility {
+                    timer.invalidate()
+                    self.permissionTimer = nil
+                    if before.1 == false { self.play(.check(true)) }
+                }
             }
         }
     }
 
     private func prepareModel() {
+        state.modelFailed = false
         if let directory = Model.installed {
             load(directory)
             return
         }
-        downloadShare = 0
-        downloadFailed = false
+        state.modelShare = 0
         Task { [weak self] in
             do {
-                let directory = try await Model.download { share in self?.downloadShare = share }
-                self?.downloadShare = nil
+                let directory = try await Model.download { share in self?.state.modelShare = share }
+                self?.state.modelShare = nil
                 self?.load(directory)
             } catch {
-                self?.downloadShare = nil
-                self?.downloadFailed = true
+                self?.state.modelShare = nil
+                self?.state.modelFailed = true
+                Log.note("model", ["download": "failed"])
             }
         }
     }
 
     private func load(_ directory: URL) {
-        modelDirectory = directory
         Task { [weak self] in
             guard let self else { return }
+            let started = Date()
             do {
                 try await transcriber.load(directory)
-                self.modelLoaded = true
+                self.state.modelReady = true
+                Log.note("model", ["loaded_ms": Int(Date().timeIntervalSince(started) * 1000)])
+                await self.recoverLeftovers()
             } catch {
-                self.downloadFailed = true
+                self.state.modelFailed = true
+                Log.note("model", ["load": "failed"])
             }
         }
+    }
+
+    // MARK: - Updates
+
+    private func scheduleUpdates() {
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkForUpdate(asked: false) }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
+            MainActor.assumeIsolated { self?.checkForUpdate(asked: false) }
+        }
+    }
+
+    private func checkForUpdate(asked: Bool) {
+        guard asked || Update.isOn else { return }
+        let app = Bundle.main.bundleURL
+        Task.detached { [weak self] in
+            let latest = Update.latest()
+            let newer = latest.map { Update.isNewer($0, than: Update.running) } ?? false
+            let replaceable = newer && Update.canReplace(app)
+            await self?.found(latest, newer: newer, replaceable: replaceable, asked: asked)
+        }
+    }
+
+    private func found(_ latest: String?, newer: Bool, replaceable: Bool, asked: Bool) {
+        guard let latest else {
+            if asked { play(.refused); pop(Toast.note(Words.say("NO ANSWER"), Words.say("Couldn't check for updates"))) }
+            return
+        }
+        guard newer else {
+            if asked { play(.select); pop(Toast.note(Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", Update.running))) }
+            return
+        }
+        guard replaceable else {
+            pop(Toast.note(Words.say("KOE %@ IS OUT", latest), Words.say("Get it from koe.fm")))
+            return
+        }
+        install(latest)
+    }
+
+    // Never under a dictation: waits for idle, then swaps and relaunches.
+    private func install(_ version: String) {
+        guard phase == .idle else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in MainActor.assumeIsolated { self?.install(version) } }
+            return
+        }
+        let app = Bundle.main.bundleURL
+        Task.detached { [weak self] in
+            let failure = Update.install(version, over: app)
+            await self?.installed(version, failure: failure)
+        }
+    }
+
+    private func installed(_ version: String, failure: String?) {
+        if let failure {
+            Log.note("update", ["failed": failure])
+            return
+        }
+        Log.note("update", ["to": version])
+        relaunch()
+    }
+
+    private func relaunch() {
+        let relaunch = Process()
+        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
+        relaunch.arguments = ["-c", "while kill -0 \(getpid()) 2>/dev/null; do sleep 0.1; done; exec /usr/bin/open \"$0\"", Bundle.main.bundlePath]
+        try? relaunch.run()
+        NSApp.terminate(nil)
     }
 
     // MARK: - The menu
@@ -240,14 +573,18 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let status = NSMenuItem(title: statusLine, action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)
-        if downloadFailed {
-            menu.addItem(entry(Words.say("Try Again"), #selector(retry)))
+        if state.modelFailed { menu.addItem(entry(Words.say("Try Again"), #selector(retryModel))) }
+        if state.microphone != true || !state.accessibility {
+            menu.addItem(entry(Words.say("Finish Setting Up…"), #selector(openWelcome)))
+        }
+        if !Journal.leftovers().filter({ $0.status != .recording || $0.pid != getpid() }).isEmpty, phase == .idle {
+            menu.addItem(entry(Words.say("Retry the Unfinished Dictation"), #selector(retryLeftovers)))
         }
 
         let dictations = recent
         if !dictations.isEmpty {
             menu.addItem(.separator())
-            let header = NSMenuItem(title: Words.say("Click to copy"), action: nil, keyEquivalent: "")
+            let header = NSMenuItem(title: Words.say("Recent · click to copy"), action: nil, keyEquivalent: "")
             header.isEnabled = false
             menu.addItem(header)
             let formatter = RelativeDateTimeFormatter()
@@ -264,30 +601,24 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        let hold = entry(Words.say("Hold fn and Talk"), #selector(holdMode))
-        hold.state = toggles ? .off : .on
-        menu.addItem(hold)
-        let press = entry(Words.say("Press fn to Start and Stop"), #selector(toggleMode))
-        press.state = toggles ? .on : .off
-        menu.addItem(press)
-        let sound = entry(Words.say("Sound"), #selector(toggleSound))
-        sound.state = muted ? .off : .on
-        menu.addItem(sound)
-        let login = entry(Words.say("Open at Login"), #selector(toggleLogin))
-        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(login)
-
-        menu.addItem(.separator())
+        menu.addItem(entry(Words.say("Settings…"), #selector(openSettings), key: ","))
+        menu.addItem(entry(Words.say("Check for Updates…"), #selector(checkUpdatesNow)))
         menu.addItem(entry(Words.say("About Koe"), #selector(openSite)))
+        menu.addItem(.separator())
         menu.addItem(entry(Words.say("Quit Koe"), #selector(quit), key: "q"))
     }
 
     private var statusLine: String {
-        if downloadFailed { return Words.say("The voice model did not download") }
-        if let share = downloadShare { return Words.say("Getting the voice model… %@", Words.percent(Int(share * 100))) }
-        if !modelLoaded { return Words.say("Waking the voice model…") }
-        if !hotkey.isRunning { return Words.say("Allow Koe in Accessibility to use fn") }
-        return toggles ? Words.say("Press fn to talk") : Words.say("Hold fn to talk")
+        if state.modelFailed { return Words.say("The voice model didn't download") }
+        if let share = state.modelShare { return Words.say("Getting the voice model… %@", Words.percent(Int(share * 100))) }
+        if !state.modelReady { return Words.say("Waking the voice model…") }
+        if state.microphone == false { return Words.say("Microphone off: allow it in Settings") }
+        if !state.accessibility { return Words.say("Accessibility off: allow it in Settings") }
+        switch phase {
+        case .listening: return Words.say("Listening…")
+        case .transcribing: return Words.say("Typing…")
+        case .idle: return state.howTo
+        }
     }
 
     private func entry(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
@@ -296,7 +627,6 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
-    // A dictation's first words, and how long ago, in gray.
     private static func titled(_ text: String, detail: String) -> NSAttributedString {
         let title = NSMutableAttributedString(string: text, attributes: [.font: NSFont.menuFont(ofSize: 0)])
         title.append(NSAttributedString(string: "   " + detail, attributes: [
@@ -310,50 +640,72 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard dictations.indices.contains(sender.tag) else { return }
         Paster.copy(dictations[sender.tag].text)
         play(.select)
-        pop(Toast.note(Words.say("COPIED"), Words.say("Paste it anywhere")))
+        pop(Toast.note(Words.say("COPIED"), Words.say("Paste it anywhere with ⌘V")))
     }
 
-    @objc private func holdMode() {
-        toggles = false
-        play(.select)
+    @objc private func openSettings() {
+        state.inputs = Devices.inputs()
+        state.login = SMAppService.mainApp.status == .enabled
+        Windows.showSettings(state)
     }
 
-    @objc private func toggleMode() {
-        toggles = true
-        play(.select)
-    }
+    @objc private func openWelcome() { Windows.showWelcome(state) }
+    @objc private func retryModel() { prepareModel() }
+    @objc private func retryLeftovers() { Task { await recoverLeftovers() } }
+    @objc private func checkUpdatesNow() { checkForUpdate(asked: true) }
+    @objc private func openSite() { NSWorkspace.shared.open(URL(string: "https://koe.fm")!) }
+    @objc private func quit() { NSApp.terminate(nil) }
 
-    @objc private func toggleSound() {
-        muted.toggle()
-        if !muted { play(.check(true)) }
-    }
-
-    @objc private func toggleLogin() {
-        let on = SMAppService.mainApp.status != .enabled
+    private func setLogin(_ on: Bool) {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             play(.check(on))
         } catch {
             play(.refused)
         }
+        state.login = SMAppService.mainApp.status == .enabled
     }
 
-    @objc private func retry() {
-        prepareModel()
+    private func copyReport() {
+        let report = Log.report([
+            "shortcut": state.shortcut.kind.rawValue,
+            "mode": state.effectiveToggles ? "toggle" : "hold",
+            "microphone permission": "\(state.microphone.map { $0 ? "on" : "off" } ?? "not asked")",
+            "accessibility": state.accessibility ? "on" : "off",
+            "keyboard listener": hotkey.isRunning ? "running" : "stopped",
+            "model": state.modelReady ? "ready" : state.modelFailed ? "failed" : "loading",
+            "chosen microphone": state.input == nil ? "default" : "a specific one",
+            "return after typing": state.submits ? "on" : "off",
+        ])
+        Paster.copy(report)
+        play(.select)
+        pop(Toast.note(Words.say("REPORT COPIED"), Words.say("No dictated text is in it")))
     }
 
-    @objc private func openSite() {
-        NSWorkspace.shared.open(URL(string: "https://koe.fm")!)
+    // MARK: - Recent dictations
+
+    private struct Dictation: Codable {
+        let text: String
+        let at: Date
     }
 
-    @objc private func quit() {
-        NSApp.terminate(nil)
+    private var recent: [Dictation] {
+        get {
+            guard state.keepsRecent, let data = UserDefaults.standard.data(forKey: "recent") else { return [] }
+            return (try? JSONDecoder().decode([Dictation].self, from: data)) ?? []
+        }
+        set { UserDefaults.standard.set(try? JSONEncoder().encode(Array(newValue.prefix(5))), forKey: "recent") }
+    }
+
+    private func remember(_ text: String, at date: Date = Date()) {
+        state.lastText = text
+        guard state.keepsRecent else { return }
+        recent = ([Dictation(text: text, at: date)] + recent).sorted { $0.at > $1.at }
     }
 
     // MARK: - Looks and sounds
 
-    // The bubble in the menu bar, in the menu bar's ink: 3 device pixels a
-    // cell, 16.5 points square.
+    // The bubble in the menu bar, in the menu bar's ink: 3 device pixels a cell.
     private func show(_ sprite: [String]) {
         guard let image = Pixels.image(sprite, color: CGColor(gray: 0, alpha: 1), scale: 3) else { return }
         let icon = NSImage(cgImage: image, size: NSSize(width: 16.5, height: 16.5))
@@ -367,7 +719,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func play(_ sound: Chime.Sound) {
-        guard !muted else { return }
+        guard !state.muted else { return }
         let player: NSSound
         if let made = sounds[sound] {
             player = made
@@ -380,9 +732,5 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         player.stop()
         player.play()
         playing = player
-    }
-
-    private func after(_ seconds: TimeInterval, _ work: @escaping @MainActor () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { MainActor.assumeIsolated { work() } }
     }
 }

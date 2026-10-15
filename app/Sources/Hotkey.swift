@@ -1,58 +1,247 @@
 import AppKit
 import CoreGraphics
 
-// Watches the fn (Globe) key, anywhere. A key pressed while fn is down makes
-// it a shortcut of its own (fn + an arrow, fn + F1…), so Koe lets go. While Koe
-// owns fn, its own presses are kept from macOS, which would otherwise open the
-// emoji picker or start its own dictation. Needs Accessibility.
+// Watches the keyboard for Koe's shortcut, anywhere (docs: Shortcut.swift).
+//
+// - fn: its presses are kept from macOS (the emoji picker, the input source,
+//   Apple's dictation), on both of its key codes (63, and 179 on Apple silicon
+//   keyboards) and the system event macOS uses as a second path while fn is
+//   held. A key pressed with fn makes it a shortcut of its own, not Koe's.
+// - A modifier alone fires once, on release, and only if nothing else (a
+//   key, a click, a scroll, another modifier) happened while it was down:
+//   ⌘C must never start Koe.
+// - A combination fires on its key, auto-repeat ignored, and is kept from
+//   the app in front.
+// - Escape cancels while Koe listens or types, and only then is kept from
+//   the app in front.
+// Needs Accessibility. macOS switches the tap off when it is slow or when
+// Accessibility is revoked: it is switched back on, or rebuilt.
 @MainActor
 final class Hotkey {
+    var shortcut = Shortcut.saved { didSet { reset() } }
     var onDown: (() -> Void)?
     var onUp: (() -> Void)?
     var onChord: (() -> Void)?
+    // Set while Koe listens or types: Escape is Koe's then.
+    var escapeActive = false
+    var onEscape: (() -> Void)?
+    // Recording a new shortcut: everything goes there, nothing fires.
+    var onCapture: ((Shortcut?) -> Void)?
+    var isCapturing: Bool { onCapture != nil }
 
     private var tap: CFMachPort?
+    private var source: CFRunLoopSource?
+    // fn and combination state, and a modifier tap still clean.
     fileprivate var fnDown = false
+    private var comboDown = false
+    private var modifierDown = false
+    private var modifierClean = false
+    // While capturing: the modifier pressed alone so far, fn pressed alone.
+    private var capturedModifier: UInt16?
+    private var capturedFn = false
+    private var capturedCombo: Shortcut?
 
-    var isRunning: Bool { tap != nil }
+    static let systemDefined = CGEventType(rawValue: 14)!
+
+    var isRunning: Bool { tap.map { CFMachPortIsValid($0) } ?? false }
 
     // False until macOS lets Koe watch the keyboard (Accessibility).
+    @discardableResult
     func start() -> Bool {
-        guard tap == nil else { return true }
-        let mask = (1 << CGEventType.flagsChanged.rawValue) | (1 << CGEventType.keyDown.rawValue)
+        if let tap, CFMachPortIsValid(tap) { return true }
+        stop()
+        var mask: CGEventMask = 0
+        for type: CGEventType in [.flagsChanged, .keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, Self.systemDefined] {
+            mask |= 1 << CGEventMask(type.rawValue)
+        }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
-                                          eventsOfInterest: CGEventMask(mask), callback: hotkeyEvent,
+                                          eventsOfInterest: mask, callback: hotkeyEvent,
                                           userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
+        self.source = source
+        reset()
         return true
+    }
+
+    func stop() {
+        if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        tap = nil
+        source = nil
+    }
+
+    // Starts listening for a new shortcut; `done` gets it, or nil if cancelled.
+    func capture(_ done: @escaping (Shortcut?) -> Void) {
+        capturedModifier = nil
+        capturedFn = false
+        capturedCombo = nil
+        onCapture = done
+    }
+
+    func cancelCapture() {
+        let done = onCapture
+        onCapture = nil
+        done?(nil)
     }
 
     fileprivate func reenable() {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-        fnDown = false
+        reset()
+    }
+
+    // Back to what the keyboard holds now.
+    private func reset() {
+        fnDown = CGEventSource.flagsState(.combinedSessionState).contains(.maskSecondaryFn)
+        comboDown = false
+        modifierDown = false
+        modifierClean = false
     }
 
     // Whether the event goes on to the rest of the Mac.
-    fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+    func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+        let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+        if isCapturing { return captureEvent(type, event, code) }
+
+        if type == .keyDown, code == 53, escapeActive {
+            onEscape?()
+            return false
+        }
+
+        switch shortcut.kind {
+        case .fn: return fnEvent(type, event, code)
+        case .modifier: return modifierEvent(type, event, code)
+        case .combo: return comboEvent(type, event, code)
+        }
+    }
+
+    private func fnEvent(_ type: CGEventType, _ event: CGEvent, _ code: UInt16) -> Bool {
+        let fnKey = code == 63 || code == 179
         switch type {
-        case .keyDown where fnDown:
-            onChord?()
-            return true
         case .flagsChanged:
             let down = event.flags.contains(.maskSecondaryFn)
-            // fn's own key is 63 (kVK_Function); arrows and F-keys raise the
-            // flag too, as part of their own key press.
-            let keycode = event.getIntegerValueField(.keyboardEventKeycode)
-            guard keycode == 63, down != fnDown else { return true }
-            fnDown = down
-            if down { onDown?() } else { onUp?() }
+            // Arrows and F-keys raise the fn flag too, as part of their own press.
+            guard fnKey else { return true }
+            if down != fnDown {
+                fnDown = down
+                if down { onDown?() } else { onUp?() }
+            }
+            return false
+        case .keyDown, .keyUp:
+            if fnKey { return false }
+            if type == .keyDown, fnDown { onChord?() }
+            return true
+        case Self.systemDefined:
+            return !fnDown
+        default:
+            return true
+        }
+    }
+
+    private func modifierEvent(_ type: CGEventType, _ event: CGEvent, _ code: UInt16) -> Bool {
+        guard let mine = Shortcut.modifierKeys[shortcut.keyCode] else { return true }
+        switch type {
+        case .flagsChanged:
+            let held = NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue)).intersection(Shortcut.relevant)
+            if code == shortcut.keyCode {
+                let down = held.contains(mine.flag) && !modifierDown
+                if down {
+                    modifierDown = true
+                    // Clean only if this modifier is the only one held.
+                    modifierClean = held == mine.flag && !event.flags.contains(.maskSecondaryFn)
+                } else if modifierDown {
+                    modifierDown = false
+                    if modifierClean && held.isEmpty { onDown?(); onUp?() }
+                    modifierClean = false
+                }
+            } else if modifierDown {
+                modifierClean = false
+            }
+        case .keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, Self.systemDefined:
+            if modifierDown { modifierClean = false }
+        default:
+            break
+        }
+        return true
+    }
+
+    private func comboEvent(_ type: CGEventType, _ event: CGEvent, _ code: UInt16) -> Bool {
+        guard code == shortcut.keyCode else { return true }
+        switch type {
+        case .keyDown:
+            let held = NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue)).intersection(Shortcut.relevant)
+            guard held == NSEvent.ModifierFlags(rawValue: shortcut.modifiers) else { return true }
+            if event.getIntegerValueField(.keyboardEventAutorepeat) == 0, !comboDown {
+                comboDown = true
+                onDown?()
+            }
+            return false
+        case .keyUp:
+            guard comboDown else { return true }
+            comboDown = false
+            onUp?()
             return false
         default:
             return true
         }
+    }
+
+    // Recording a shortcut: committed when the keys are released, as the
+    // whole chord that was down; Escape alone cancels.
+    private func captureEvent(_ type: CGEventType, _ event: CGEvent, _ code: UInt16) -> Bool {
+        let held = NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue)).intersection(Shortcut.relevant)
+        switch type {
+        case .keyDown:
+            if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { return false }
+            if code == 63 || code == 179 { return false }
+            if code == 53 && held.isEmpty {
+                cancelCapture()
+                return false
+            }
+            capturedModifier = nil
+            capturedFn = false
+            capturedCombo = Shortcut(kind: .combo, keyCode: code, modifiers: held.rawValue)
+            return false
+        case .keyUp:
+            if let combo = capturedCombo { finishCapture(combo) }
+            return false
+        case .flagsChanged:
+            if code == 63 || code == 179 {
+                if event.flags.contains(.maskSecondaryFn) {
+                    capturedFn = capturedCombo == nil && held.isEmpty
+                } else if capturedFn {
+                    finishCapture(.fn)
+                }
+                return false
+            }
+            if Shortcut.modifierKeys[code] != nil, capturedCombo == nil {
+                if !held.isEmpty {
+                    // Only a single modifier pressed alone counts.
+                    capturedModifier = held == Shortcut.modifierKeys[code]?.flag && capturedModifier == nil ? code : nil
+                } else if let modifier = capturedModifier, modifier == code {
+                    finishCapture(Shortcut(kind: .modifier, keyCode: code))
+                } else {
+                    capturedModifier = nil
+                }
+            }
+            return true
+        case Self.systemDefined:
+            return !event.flags.contains(.maskSecondaryFn)
+        default:
+            return true
+        }
+    }
+
+    private func finishCapture(_ shortcut: Shortcut) {
+        let done = onCapture
+        onCapture = nil
+        capturedCombo = nil
+        capturedModifier = nil
+        capturedFn = false
+        reset()
+        done?(shortcut)
     }
 }
 

@@ -58,6 +58,9 @@ final class Toast {
     // The live pill's bars and stage, while it shows.
     private var bars: [CALayer] = []
     private var liveStage: CALayer?
+    private var liveCaption: CALayer?
+    private var liveInk: CGColor?
+    private var liveScale: CGFloat = 2
     private static let barCount = 5, barWidth: CGFloat = 4, barGap: CGFloat = 3, barMax: CGFloat = 22
     // Each bar's share of the level, so they move as a voice does, not in step.
     private static let barShape: [CGFloat] = [0.55, 0.9, 1, 0.75, 0.5]
@@ -191,6 +194,11 @@ final class Toast {
             }
         }
         let captionLayer = CALayer()
+        if style.live {
+            liveCaption = captionLayer
+            liveInk = style.captionInk
+            liveScale = scale
+        }
         if let caption {
             captionLayer.contents = caption.image
             captionLayer.contentsScale = scale
@@ -249,12 +257,24 @@ final class Toast {
         CATransaction.commit()
     }
 
+    // A new line under the live pill's title ("No sound…").
+    func setCaption(_ text: String) {
+        guard let layer = liveCaption, let ink = liveInk,
+              let caption = Self.textImage(text, font: Self.captionFont, color: ink, scale: liveScale, crisp: false) else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.contents = caption.image
+        layer.frame.size = caption.size
+        CATransaction.commit()
+    }
+
     // Takes the live pill away.
     func dismiss() {
         guard let stage = liveStage else { return }
         generation += 1
         let current = generation
         liveStage = nil
+        liveCaption = nil
         bars = []
         leave(stage, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
