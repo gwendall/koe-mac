@@ -5,6 +5,12 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.1.0 - 2026-10-15
+
+- New, off by default: Polish the words. A small language model on your Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation, in about a tenth of a second. Turn it on in Settings: it downloads once (1.3 GB) in the background while Koe keeps typing.
+- Filler sounds (um, uh, euh…) are now always taken out, with no delay.
+- A dictionary word no longer replaces a real word that looks like it: with “wham” in your dictionary, “what” stays “what”.
+
 ## 2.0.2 - 2026-10-15
 
 - The last words of a dictation are no longer cut off: Koe keeps listening a moment after you let go of fn.
