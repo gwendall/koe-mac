@@ -67,6 +67,16 @@ if args.first == "--render-toasts", args.count > 1 {
     exit(0)
 }
 
+// `Koe --render-journey <dir>` draws every screen a newcomer meets.
+if args.first == "--render-journey", args.count > 1 {
+    MainActor.assumeIsolated {
+        _ = NSApplication.shared
+        NSApp.setActivationPolicy(.accessory)
+        Journey.render(to: URL(fileURLWithPath: args[1]))
+    }
+    exit(0)
+}
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = Koe()

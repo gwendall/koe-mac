@@ -121,6 +121,8 @@ struct PillButton: View {
 
 struct StepRow: View {
     let done: Bool
+    // The step to do now gets the candy button; the others wait in gray.
+    var next = true
     let title: String
     let detail: String
     var button: String?
@@ -135,8 +137,25 @@ struct StepRow: View {
                 Text(detail).font(Brand.body(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            if !done, let button { PillButton(title: button, prominent: true, action: action) }
+            if !done, let button { PillButton(title: button, prominent: next, action: action) }
         }
+    }
+}
+
+// Progress in the brand's gradient.
+struct CandyBar: View {
+    let share: Double
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.secondary.opacity(0.18))
+                Capsule().fill(Brand.gradient).frame(width: max(8, geometry.size.width * share))
+            }
+        }
+        .frame(height: 6)
+        .accessibilityElement()
+        .accessibilityLabel(Words.say("Download"))
+        .accessibilityValue(Words.percent(Int(share * 100)))
     }
 }
 
@@ -156,9 +175,15 @@ struct Keycap: View {
 
 struct Welcome: View {
     @ObservedObject var state: KoeState
-    @State private var step = 0
-    @State private var practice = ""
+    @State private var step: Int
+    @State private var practice: String
     @FocusState private var practiceFocused: Bool
+
+    init(state: KoeState, step: Int = 0, practice: String = "") {
+        self.state = state
+        _step = State(initialValue: step)
+        _practice = State(initialValue: practice)
+    }
 
     private var permissionsDone: Bool { state.microphone == true && state.accessibility }
 
@@ -177,6 +202,7 @@ struct Welcome: View {
             dots.padding(.bottom, 20)
         }
         .frame(width: 460, height: 560)
+        .background(Color(nsColor: .windowBackgroundColor))
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: step)
     }
 
@@ -211,18 +237,20 @@ struct Welcome: View {
 
     private var permissions: some View {
         VStack(alignment: .leading, spacing: 22) {
-            Brand.title(Words.say("Two permissions"), size: 16)
+            Brand.title(Words.say("Get Koe ready"), size: 16)
             Text(Words.say("Koe only listens while you hold your shortcut, and only types where you ask."))
                 .font(Brand.body(14)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            StepRow(done: state.microphone == true, title: Words.say("Microphone"),
+            StepRow(done: state.microphone == true, next: true, title: Words.say("Microphone"),
                     detail: state.microphone == false
                         ? Words.say("Turned off. Turn Koe on in Privacy & Security › Microphone.")
                         : Words.say("To hear you."),
                     button: state.microphone == false ? Words.say("Open Settings") : Words.say("Allow")) {
                 state.microphone == false ? state.openMicrophoneSettings() : state.askMicrophone()
             }
-            StepRow(done: state.accessibility, title: Words.say("Accessibility"),
-                    detail: Words.say("To hear your shortcut from any app, and to type the words for you. Turn Koe on in the list that opens."),
+            StepRow(done: state.accessibility, next: state.microphone == true, title: Words.say("Accessibility"),
+                    detail: state.accessibility
+                        ? Words.say("Koe hears your shortcut in every app.")
+                        : Words.say("To hear your shortcut from any app, and to type the words for you. Turn Koe on in the list that opens."),
                     button: Words.say("Open Settings")) { state.openAccessibility() }
             modelRow
             Spacer()
@@ -242,7 +270,7 @@ struct Welcome: View {
         if state.modelFailed {
             detail = Words.say("The download stopped. Check your connection.")
         } else if let share = state.modelShare {
-            detail = Words.say("Downloading, %@ of about 630 MB, once.", Words.percent(Int(share * 100)))
+            detail = Words.say("Downloading once (630 MB): %@. You can go on meanwhile.", Words.percent(Int(share * 100)))
         } else if state.modelReady {
             detail = Words.say("Ready, on this Mac. Works offline.")
         } else {
@@ -252,7 +280,7 @@ struct Welcome: View {
             StepRow(done: state.modelReady, title: Words.say("Voice model"), detail: detail,
                     button: state.modelFailed ? Words.say("Try Again") : nil) { state.retryModel() }
             if let share = state.modelShare {
-                ProgressView(value: share).tint(Color(cg: Pixels.candy[0])).padding(.leading, 30)
+                CandyBar(share: share).padding(.leading, 30)
             }
         }
     }
@@ -263,7 +291,7 @@ struct Welcome: View {
             HStack(spacing: 6) {
                 Text(state.effectiveToggles ? Words.say("Click in the box, press") : Words.say("Click in the box, hold"))
                 Keycap(text: state.shortcut.label)
-                Text(state.effectiveToggles ? Words.say("and say hello.") : Words.say("and say hello, then let go."))
+                Text(state.effectiveToggles ? Words.say("say hello, press it again.") : Words.say("and say hello, then let go."))
             }
             .font(Brand.body(14))
             TextEditor(text: $practice)
@@ -360,7 +388,7 @@ struct SettingsView: View {
                 if let error = state.captureError {
                     Text(error).font(Brand.body(11)).foregroundStyle(.red)
                 }
-                Picker(Words.say("Mode"), selection: $state.toggles) {
+                Picker(Words.say("Mode"), selection: Binding(get: { state.effectiveToggles }, set: { state.toggles = $0 })) {
                     Text(Words.say("Hold to talk")).tag(false)
                     Text(Words.say("Press to start and stop")).tag(true)
                 }
@@ -421,6 +449,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .tint(Color(cg: Pixels.candy[0]))
         .frame(width: 480, height: 640)
         .onChange(of: state.toggles) { state.save() }
         .onChange(of: state.submits) { state.save() }

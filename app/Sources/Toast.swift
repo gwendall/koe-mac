@@ -96,7 +96,10 @@ final class Toast {
         let padLeft = (Self.height - icon) / 2, gap: CGFloat = 11, padRight: CGFloat = 20
         let height = Self.height
         let barsWidth = style.live ? CGFloat(Self.barCount) * Self.barWidth + CGFloat(Self.barCount - 1) * Self.barGap + 14 : 0
-        let width = padLeft + icon + gap + max(titleWidth, caption?.size.width ?? 0) + barsWidth + padRight
+        // The live pill keeps room for its longest line, "No sound…".
+        let reserve = style.live ? Self.textImage(Words.say("No sound: check your microphone"), font: Self.captionFont,
+                                                  color: style.captionInk, scale: scale, crisp: false)?.size.width ?? 0 : 0
+        let width = padLeft + icon + gap + max(titleWidth, caption?.size.width ?? 0, reserve) + barsWidth + padRight
 
         // Place the pill just under the bubble, inside the screen.
         let size = NSSize(width: width + 2 * Self.margin, height: height + 2 * Self.margin)

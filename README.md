@@ -7,10 +7,15 @@ Koe lives in the menu bar as a little chat bubble. It runs Parakeet Ultra on
 the Apple Neural Engine (through [FluidAudio](https://github.com/FluidInference/FluidAudio)):
 no account, no cloud, nothing to choose.
 
-- **Hold fn** and talk; let go and the words are typed. Or, from the menu,
-  **press fn** to start and again to stop.
+- **Hold fn** and talk; let go and the words are typed where your cursor is
+  (even if you clicked another field meanwhile). Escape cancels.
+- **Your shortcut:** fn, a modifier on its own (right ⌥…), or a combination;
+  hold to talk, or press to start and stop.
 - **The menu** keeps your last five dictations: click one to copy it.
-- Sound, Open at Login. That is all.
+- **Settings:** microphone, Return after typing, a dictionary of your words,
+  sounds, open at login, automatic updates, a diagnostic report.
+- **Never loses a word:** every dictation is on disk until it is typed; after
+  a crash Koe puts it on the clipboard at the next launch.
 
 Koe needs an Apple silicon Mac with macOS 14 or later, the microphone, and
 Accessibility (to hear fn and to paste).
@@ -21,9 +26,13 @@ Accessibility (to hear fn and to paste).
 SIGN=- scripts/build.sh     # build/Koe.app, signed ad hoc
 ```
 
-`Koe --transcribe <file.wav>…` prints what Koe hears in each file;
-`Koe --render-toasts <dir>` and `Koe --render-sounds <dir>` write its pills and
-sounds out to look at and listen to.
+- `Koe --self-test`: the guards (shortcuts, delivery rules, silence, journal).
+- `Koe --render-journey <dir>`: every screen a newcomer meets, light and dark.
+- `Koe --transcribe <file.wav>…`: what Koe hears in each file.
+- `Koe --render-toasts <dir>`, `Koe --render-sounds <dir>`: pills and sounds.
+
+To meet Koe as a newcomer again: `defaults delete fm.koe.mac` and
+`tccutil reset All fm.koe.mac`, then open it.
 
 Brand: [docs/brand.md](docs/brand.md). Koe belongs to the family of
 [Wham](https://github.com/gwendall/wham), from The Atelier.
