@@ -32,6 +32,7 @@ enum Journey {
             ("09-try-listening", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.listening = true }, step: 2)), NSSize(width: 460, height: 560)),
             ("10-try-typed", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, step: 2, practice: "Bonjour Koe, ça marche vraiment bien. ")), NSSize(width: 460, height: 560)),
             ("11-try-modifier-toggle", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.shortcut = Shortcut(kind: .modifier, keyCode: 61) }, step: 2)), NSSize(width: 460, height: 560)),
+            ("11c-accessibility-guide", AnyView(GuideCard().padding(20)), NSSize(width: 380, height: 126)),
             ("11b-all-set", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, step: 3)), NSSize(width: 460, height: 560)),
             ("12-settings", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true })), NSSize(width: 480, height: 640)),
             ("13-settings-capturing", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.capturing = true })), NSSize(width: 480, height: 640)),

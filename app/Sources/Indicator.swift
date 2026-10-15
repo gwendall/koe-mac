@@ -2,7 +2,7 @@ import AppKit
 import QuartzCore
 
 // The dictation's own small pill, low in the middle of the screen you work
-// on: five bars and nothing to read. Flat and gray the moment the shortcut
+// on (or along another edge, Place): five bars and nothing to read. Flat and gray the moment the shortcut
 // goes down and whenever no voice comes in, dancing with the voice, a wave
 // while the words are worked out, a check when they land. Anything Koe has
 // to say goes up in the toast instead (docs/brand.md).
@@ -22,7 +22,23 @@ final class Indicator {
     private var stage: CALayer?
     private var bars: [CALayer] = []
     private var working = false
+    private var edge = Place.bottom
     private var generation = 0
+
+    // Where the pill shows: the middle of one of the screen's edges.
+    enum Place: String, CaseIterable, Identifiable {
+        case bottom, top, left, right
+        var id: String { rawValue }
+        static var saved: Place { UserDefaults.standard.string(forKey: "indicatorPlace").flatMap(Place.init) ?? .bottom }
+        var name: String {
+            switch self {
+            case .bottom: Words.say("Bottom")
+            case .top: Words.say("Top")
+            case .left: Words.say("Left")
+            case .right: Words.say("Right")
+            }
+        }
+    }
 
     // What the evals take a picture of.
     var window: NSWindow { panel }
@@ -47,10 +63,19 @@ final class Indicator {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
         let size = NSSize(width: Self.size.width + 2 * Self.margin, height: Self.size.height + 2 * Self.margin)
+        let place = Place.saved
         if let area = screen?.visibleFrame {
-            panel.setFrame(NSRect(x: (area.midX - size.width / 2).rounded(), y: area.minY + Self.lift - Self.margin, width: size.width, height: size.height),
-                           display: false)
+            let origin: NSPoint
+            switch place {
+            case .bottom: origin = NSPoint(x: area.midX - size.width / 2, y: area.minY + Self.lift - Self.margin)
+            case .top: origin = NSPoint(x: area.midX - size.width / 2, y: area.maxY - Self.lift + Self.margin - size.height)
+            case .left: origin = NSPoint(x: area.minX + Self.lift - Self.margin, y: area.midY - size.height / 2)
+            case .right: origin = NSPoint(x: area.maxX - Self.lift + Self.margin - size.width, y: area.midY - size.height / 2)
+            }
+            panel.setFrame(NSRect(origin: NSPoint(x: origin.x.rounded(), y: origin.y.rounded()), size: size), display: false)
         }
+        // In from its edge, out toward it.
+        edge = place
         host.frame = NSRect(origin: .zero, size: size)
         let root = host.layer!
         root.sublayers?.forEach { $0.removeFromSuperlayer() }
@@ -59,8 +84,8 @@ final class Indicator {
         let radius = bounds.height / 2
         let stage = CALayer()
         stage.bounds = bounds
-        stage.anchorPoint = CGPoint(x: 0.5, y: 0)
-        stage.position = CGPoint(x: size.width / 2, y: Self.margin)
+        stage.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        stage.position = CGPoint(x: size.width / 2, y: size.height / 2)
         root.addSublayer(stage)
         self.stage = stage
 
@@ -104,7 +129,7 @@ final class Indicator {
             Motion.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.15)
         } else {
             Motion.spring(stage, "transform.scale", from: 0.8, to: 1, at: now, omega: 18, zeta: 0.7)
-            Motion.spring(stage, "transform.translation.y", from: -10, to: 0, at: now, omega: 18, zeta: 0.75)
+            Motion.spring(stage, edge.axis, from: edge.inward * -10, to: 0, at: now, omega: 18, zeta: 0.75)
             Motion.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.1)
         }
         CATransaction.commit()
@@ -214,8 +239,10 @@ final class Indicator {
         let timing = CAMediaTimingFunction(name: .easeIn)
         if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             Motion.basic(stage, "transform.scale", from: 1, to: 0.85, at: now, duration: 0.16, timing: timing)
-            Motion.basic(stage, "transform.translation.y", from: 0, to: -8, at: now, duration: 0.16, timing: timing)
-            stage.transform = CATransform3DTranslate(CATransform3DMakeScale(0.85, 0.85, 1), 0, -8, 0)
+            Motion.basic(stage, edge.axis, from: 0, to: edge.inward * -8, at: now, duration: 0.16, timing: timing)
+            let away = edge.inward * -8
+            stage.transform = CATransform3DTranslate(CATransform3DMakeScale(0.85, 0.85, 1),
+                                                     edge.axis.hasSuffix("x") ? away : 0, edge.axis.hasSuffix("y") ? away : 0, 0)
         }
         Motion.basic(stage, "opacity", from: 1, to: 0, at: now, duration: 0.16, timing: timing)
         stage.opacity = 0
@@ -225,4 +252,10 @@ final class Indicator {
             self.panel.orderOut(nil)
         }
     }
+}
+
+private extension Indicator.Place {
+    // The animated axis, and the way from the edge into the screen along it.
+    var axis: String { self == .left || self == .right ? "transform.translation.x" : "transform.translation.y" }
+    var inward: CGFloat { self == .bottom || self == .left ? 1 : -1 }
 }

@@ -39,7 +39,33 @@ enum Windows {
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: view)
         window.center()
+        thinScrollers(in: window)
         return window
+    }
+
+    // The thin scroller that shows only while scrolling, even on a Mac set to
+    // always show them: the wide one ate the settings' right edge. Again
+    // whenever the Mac's choice changes, as AppKit puts its own back.
+    private static func thinScrollers(in window: NSWindow) {
+        weak var window = window
+        func apply() {
+            var views = window?.contentView.map { [$0] } ?? []
+            while let view = views.popLast() {
+                if let scroll = view as? NSScrollView {
+                    scroll.scrollerStyle = .overlay
+                    scroll.autohidesScrollers = true
+                }
+                views += view.subviews
+            }
+        }
+        // The form's scroll view comes with SwiftUI's first layout.
+        DispatchQueue.main.async { apply() }
+        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main) { _ in
+            MainActor.assumeIsolated { apply() }
+        }
+        NotificationCenter.default.addObserver(forName: NSScroller.preferredScrollerStyleDidChangeNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { DispatchQueue.main.async { apply() } }
+        }
     }
 
     private static func present(_ window: NSWindow) {
@@ -189,11 +215,13 @@ struct Welcome: View {
     @State private var step: Int
     @State private var practice: String
     @FocusState private var practiceFocused: Bool
+    @State private var cheered = false
 
     init(state: KoeState, step: Int = 0, practice: String = "") {
         self.state = state
         _step = State(initialValue: step)
         _practice = State(initialValue: practice)
+        _cheered = State(initialValue: !practice.isEmpty)
     }
 
     private var permissionsDone: Bool { state.microphone == true && state.accessibility }
@@ -233,6 +261,7 @@ struct Welcome: View {
             Spacer()
             BubbleIcon(size: 112)
             Brand.title(Words.say("Hi, I'm Koe"), size: 24)
+                .padding(.bottom, 10)
             Text(Words.say("Talk. It types."))
                 .font(Brand.body(20, weight: .semibold))
             Text(Words.say("Hold a key, say what you want to write, let go: your words land where your cursor is. Everything stays on this Mac."))
@@ -312,6 +341,14 @@ struct Welcome: View {
                 Text(state.shortcut.forcesToggle ? Words.say("say hello, press it again.") : Words.say("and say hello, then let go."))
             }
             .font(Brand.body(14))
+            if state.shortcut.kind == .fn, let rival = Shortcut.rivals.first {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color(cg: Pixels.candy[0]))
+                    Text(Words.say("%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below.", rival))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .font(Brand.body(12))
+            }
             TextEditor(text: $practice)
                 .font(Brand.body(15))
                 .focused($practiceFocused)
@@ -319,16 +356,22 @@ struct Welcome: View {
                 .padding(10)
                 .frame(height: 140)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(state.listening ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(Color.secondary.opacity(0.25)),
-                                                                   lineWidth: state.listening ? 2 : 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(state.listening || !practice.isEmpty ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(Color.secondary.opacity(0.25)),
+                                                                   lineWidth: state.listening || !practice.isEmpty ? 2 : 1))
             if !state.modelReady {
                 Text(Words.say("The voice model is still getting ready…")).font(Brand.body(12)).foregroundStyle(.secondary)
             } else if practice.isEmpty {
                 Text(state.listening ? Words.say("Listening…") : Words.say("Your words will appear here."))
                     .font(Brand.body(12)).foregroundStyle(.secondary)
             } else {
-                Text(Words.say("That's it. Koe works the same in any app."))
-                    .font(Brand.body(13, weight: .semibold))
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(cg: Pixels.candy[0]))
+                        .scaleEffect(cheered ? 1 : 0.3)
+                    Text(Words.say("That's it. Koe works the same in any app."))
+                        .font(Brand.body(13, weight: .semibold))
+                }
             }
             Text(Words.say("Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings."))
                 .font(Brand.body(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -337,7 +380,7 @@ struct Welcome: View {
                 Button(Words.say("Change the Shortcut…")) { state.finishWelcome(); Windows.closeWelcome(); NotificationCenter.default.post(name: .koeShowSettings, object: nil) }
                     .buttonStyle(.link)
                 Spacer()
-                PillButton(title: practice.isEmpty ? Words.say("Skip") : Words.say("Done"), prominent: !practice.isEmpty) {
+                PillButton(title: practice.isEmpty ? Words.say("Skip") : Words.say("Continue"), prominent: !practice.isEmpty) {
                     if practice.isEmpty {
                         state.finishWelcome()
                         Windows.closeWelcome()
@@ -361,10 +404,12 @@ struct Welcome: View {
             }
         }
         .onDisappear { state.tryIt = nil }
-        // The first words in the box: a moment to read them, then the finale.
+        // The first words in the box: a check, right here, to read them by.
+        // The finale waits for Continue.
         .onChange(of: practice.isEmpty) { _, empty in
-            guard !empty else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { if step == 2 { step = 3 } }
+            guard !empty, !cheered else { return }
+            state.cheer()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) { cheered = true }
         }
     }
 
@@ -537,6 +582,10 @@ struct SettingsView: View {
                     Text(Words.say("A modifier on its own starts and stops Koe when you release it."))
                         .font(Brand.body(11)).foregroundStyle(.secondary)
                 }
+                if state.shortcut.kind == .fn, let rival = Shortcut.rivals.first {
+                    Text(Words.say("%@ is open and may use fn too: both would start at once.", rival))
+                        .font(Brand.body(11)).foregroundStyle(.secondary)
+                }
                 if state.shortcut.kind == .fn, let use = Shortcut.globeUse {
                     Text(Words.say("On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening.", use))
                         .font(Brand.body(11)).foregroundStyle(.secondary)
@@ -615,6 +664,9 @@ struct SettingsView: View {
 
             Section("Koe") {
                 Toggle(Words.say("Sounds"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
+                Picker(Words.say("Pill while you talk"), selection: $state.place) {
+                    ForEach(Indicator.Place.allCases) { place in Text(place.name).tag(place) }
+                }
                 Toggle(Words.say("Open at Login"), isOn: Binding(get: { state.login }, set: { state.setLogin($0) }))
                 Toggle(Words.say("Update Automatically"), isOn: $state.updates)
                 LabeledContent(Words.say("Something wrong?")) {
@@ -631,6 +683,10 @@ struct SettingsView: View {
         }
         .onChange(of: state.keepsRecent) { state.save() }
         .onChange(of: state.muted) { state.save() }
+        .onChange(of: state.place) {
+            state.save()
+            state.showPill()
+        }
         .onChange(of: state.updates) { state.save() }
         .onChange(of: state.input) { state.save() }
         .onChange(of: state.words) { state.save() }

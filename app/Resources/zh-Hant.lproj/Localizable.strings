@@ -90,7 +90,6 @@
 "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings." = "Koe 住在上方的選單列裡：就是那個小泡泡。按一下它可查看最近的聽寫和設定。";
 "Change the Shortcut…" = "更改快速鍵⋯";
 "Skip" = "略過";
-"Done" = "完成";
 
 "Koe Settings" = "Koe 設定";
 "Permissions" = "權限";
@@ -177,3 +176,18 @@
 "What's New" = "新功能";
 "Recent" = "最近";
 "now" = "剛剛";
+"%@ is open and may use fn too: both would start at once." = "%@ 已開啟，可能也在用 fn：兩者會同時啟動。";
+"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ 可能也在用 fn，會和 Koe 一起啟動。請結束它，或在下方「更改快速鍵」中給 Koe 換一個鍵。";
+"Bottom" = "底部";
+"Top" = "頂部";
+"Left" = "左側";
+"Right" = "右側";
+"Drag Koe into the list" = "把 Koe 拖進列表";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe 無法移動自身：%@。請把它拖到「應用程式」。";
+"Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe 正從磁碟映像檔執行。放在「應用程式」中，macOS 會保留它的權限，並可在登入時開啟。";
+"Not in it? Drag the bubble into the list." = "不在列表裡？把氣泡拖進去。";
+"Pill while you talk" = "說話時的膠囊";
+"Turn Koe on in this list" = "在此列表中開啟 Koe";
+"Move Koe to Applications?" = "要把 Koe 移到「應用程式」資料夾嗎？";
+"Move to Applications" = "移到「應用程式」";
+"Not Now" = "稍後再說";

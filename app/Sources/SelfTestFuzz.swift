@@ -236,6 +236,19 @@ extension SelfTest {
         check(Paster.joined("? Oui.", after: "i") == "? Oui.", "join: before its own question mark, none")
         check(Paster.joined("", after: "d") == "", "join: nothing stays nothing")
 
+        // Words dictated in the middle of a sentence lose the capital.
+        check(Paster.continued("Then we ship.", after: "I wrote the tests and") == "then we ship.", "continue: after a word, lowercase")
+        check(Paster.continued("Then we ship.", after: "Tests pass, ") == "then we ship.", "continue: after a comma, lowercase")
+        check(Paster.continued("Then we ship.", after: "Tests pass. ") == "Then we ship.", "continue: after a full stop, kept")
+        check(Paster.continued("Then we ship.", after: "") == "Then we ship.", "continue: at the start, kept")
+        check(Paster.continued("Then we ship.", after: nil) == "Then we ship.", "continue: unknown field, kept")
+        check(Paster.continued("I think so.", after: "and") == "I think so.", "continue: I stays I")
+        check(Paster.continued("NASA called.", after: "and") == "NASA called.", "continue: an acronym stays")
+        check(Paster.continued("iPhone works.", after: "and") == "iPhone works.", "continue: a lowercase start stays")
+        check(Paster.continued("Paris is far.", after: "and") == "Paris is far.", "continue: a place stays")
+        check(Paster.continued("Ensuite on part.", after: "on finit les tests et") == "ensuite on part.", "continue: in French too")
+        check(Paster.continued("Morgen gehen wir ins Kino.", after: "Wir arbeiten heute und") == "Morgen gehen wir ins Kino.", "continue: German keeps its capitals")
+
         // Did the words land? Appended, over a selection, in the middle, curled.
         let words = "Hello Koe, this is my very first dictation."
         check(Target.arrived(words, before: "", now: words), "arrived: into an empty field")

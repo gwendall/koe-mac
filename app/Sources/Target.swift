@@ -144,17 +144,18 @@ enum Target {
 
     nonisolated static func value(of element: AXUIElement) -> String? { string(element, kAXValueAttribute) }
 
-    // The character just before the cursor, when the field says.
-    nonisolated static func characterBeforeCursor(in element: AXUIElement) -> Character? {
+    // The few characters just before the cursor (`count` UTF-16 units at
+    // most), when the field says; "" at its very start.
+    nonisolated static func textBeforeCursor(in element: AXUIElement, count: Int = 40) -> String? {
         guard let text = value(of: element) else { return nil }
         var range: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range) == .success,
               let range, CFGetTypeID(range) == AXValueGetTypeID() else { return nil }
         var cursor = CFRange()
-        guard AXValueGetValue(range as! AXValue, .cfRange, &cursor), cursor.location > 0 else { return nil }
+        guard AXValueGetValue(range as! AXValue, .cfRange, &cursor), cursor.location >= 0 else { return nil }
         let utf16 = Array(text.utf16)
         guard cursor.location <= utf16.count else { return nil }
-        return String(utf16CodeUnits: [utf16[cursor.location - 1]], count: 1).first
+        return String(decoding: utf16[max(0, cursor.location - count)..<cursor.location], as: UTF16.self)
     }
 
     nonisolated private static func string(_ element: AXUIElement, _ attribute: String) -> String? {

@@ -98,6 +98,14 @@ struct Shortcut: Codable, Equatable {
         set { UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "shortcut") }
     }
 
+    // Other dictation apps open now, which may listen to fn too: both would
+    // start at once. Said before Koe's first words, never decided for you.
+    static var rivals: [String] {
+        let known = ["Wispr Flow", "Superwhisper", "MacWhisper", "VoiceInk", "Aqua Voice", "Willow", "Monologue", "Spokenly"]
+        let names = NSWorkspace.shared.runningApplications.compactMap(\.localizedName)
+        return known.filter { name in names.contains { $0.localizedCaseInsensitiveCompare(name) == .orderedSame } }
+    }
+
     // What macOS does with 🌐 itself (Keyboard settings, "Press 🌐 key to"),
     // which Koe holds back while fn is its shortcut.
     static var globeUse: String? {

@@ -90,7 +90,6 @@
 "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings." = "O Koe fica na barra de menus, lá em cima: o balãozinho. Clique nele para ver seus últimos ditados e os ajustes.";
 "Change the Shortcut…" = "Alterar o Atalho…";
 "Skip" = "Pular";
-"Done" = "Concluído";
 
 "Koe Settings" = "Ajustes do Koe";
 "Permissions" = "Permissões";
@@ -177,3 +176,18 @@
 "What's New" = "Novidades";
 "Recent" = "Recentes";
 "now" = "agora";
+"%@ is open and may use fn too: both would start at once." = "%@ está aberto e talvez também use fn: os dois começariam ao mesmo tempo.";
+"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ talvez também use fn e começaria junto com o Koe. Feche-o, ou dê outra tecla ao Koe em Alterar o Atalho, abaixo.";
+"Bottom" = "Embaixo";
+"Top" = "Em cima";
+"Left" = "À esquerda";
+"Right" = "À direita";
+"Drag Koe into the list" = "Arraste o Koe para a lista";
+"Koe could not move itself: %@. Drag it into Applications instead." = "O Koe não conseguiu se mover: %@. Arraste-o para Aplicativos.";
+"Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "O Koe está sendo executado da imagem de disco. Em Aplicativos, o macOS mantém suas permissões e ele pode abrir no início da sessão.";
+"Not in it? Drag the bubble into the list." = "Não está lá? Arraste a bolha para a lista.";
+"Pill while you talk" = "Pílula enquanto fala";
+"Turn Koe on in this list" = "Ative o Koe nesta lista";
+"Move Koe to Applications?" = "Mover o Koe para Aplicativos?";
+"Move to Applications" = "Mover para Aplicativos";
+"Not Now" = "Agora Não";

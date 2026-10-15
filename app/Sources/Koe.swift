@@ -14,6 +14,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let toast = Toast()
     private let indicator = Indicator()
+    private let guide = Guide()
     private let hotkey = Hotkey()
     private let recorder = Recorder()
     private var transcriber = Transcriber()
@@ -67,12 +68,15 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // One Koe at a time: two would hear the shortcut twice and type twice.
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "fm.koe.mac")
             .filter { $0.processIdentifier != getpid() }
+            // The copy on the disk image, quitting as this one (moved to Applications) opens.
+            .filter { other in !(other.bundleURL.map { Self.isTemporary($0.path) } ?? false) || Self.runsFromTemporaryCopy }
         if let other = others.first {
             other.activate()
             NSApp.terminate(nil)
             return
         }
         Log.note("launch", ["version": Update.running])
+        if Self.runsFromTemporaryCopy && offerToMove() { return }
 
         show(Pixels.ready)
         item.button?.setAccessibilityLabel("Koe")
@@ -119,6 +123,57 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    // Opened from the disk image, or from Downloads (macOS then runs a hidden
+    // copy of it), Koe gets its permissions on that copy, which the list in
+    // System Settings may not even show, and loses them next time: it offers
+    // to move itself first, as Wham does.
+    private static var runsFromTemporaryCopy: Bool { isTemporary(Bundle.main.bundlePath) }
+
+    private static func isTemporary(_ path: String) -> Bool {
+        path.hasPrefix("/Volumes/") || path.contains("/AppTranslocation/")
+    }
+
+    private func offerToMove() -> Bool {
+        let ask = NSAlert()
+        ask.messageText = Words.say("Move Koe to Applications?")
+        ask.informativeText = Words.say("Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login.")
+        ask.addButton(withTitle: Words.say("Move to Applications"))
+        ask.addButton(withTitle: Words.say("Not Now"))
+        NSApp.activate(ignoringOtherApps: true)
+        guard ask.runModal() == .alertFirstButtonReturn else {
+            Log.note("move", ["answer": "not now"])
+            return false
+        }
+        let files = FileManager.default
+        let folder = files.isWritableFile(atPath: "/Applications")
+            ? URL(fileURLWithPath: "/Applications") : files.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+        let destination = folder.appendingPathComponent("Koe.app")
+        do {
+            try files.createDirectory(at: folder, withIntermediateDirectories: true)
+            if files.fileExists(atPath: destination.path) { try files.removeItem(at: destination) }
+            try files.copyItem(at: Bundle.main.bundleURL, to: destination)
+        } catch {
+            Log.note("move", ["to": folder.path, "failed": error.localizedDescription])
+            let failed = NSAlert()
+            failed.messageText = Words.say("Koe could not move itself: %@. Drag it into Applications instead.", error.localizedDescription)
+            failed.runModal()
+            return false
+        }
+        Log.note("move", ["to": folder.path])
+        // This copy already passed Gatekeeper; without the flag it opens from Applications for real.
+        let clear = Process()
+        clear.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
+        clear.arguments = ["-dr", "com.apple.quarantine", destination.path]
+        try? clear.run()
+        clear.waitUntilExit()
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: destination, configuration: configuration) { _, _ in
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+        }
+        return true
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         openSettings()
         return false
@@ -163,6 +218,8 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
                 }
             }
+            // Beside the list: turn Koe on, or drag it in when it is missing.
+            self?.guide.show()
             self?.stepAside()
         }
         state.startCapture = { [weak self] in self?.captureShortcut() }
@@ -173,6 +230,13 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.copyReport = { [weak self] in self?.copyReport() }
         state.finishWelcome = { UserDefaults.standard.set(true, forKey: "welcomed") }
         state.celebrate = { [weak self] in self?.play(.hooray) }
+        state.cheer = { [weak self] in self?.play(.check(true)) }
+        // A new place for the pill: shown there a moment.
+        state.showPill = { [weak self] in
+            guard let self, self.phase == .idle else { return }
+            self.indicator.show()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { if self.phase == .idle { self.indicator.done() } }
+        }
         state.login = SMAppService.mainApp.status == .enabled
         state.inputs = Devices.inputs()
     }
@@ -629,25 +693,20 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return windows.contains { ($0[kCGWindowOwnerName as String] as? String) == "universalAccessAuthWarn" }
     }
 
-    // While you are in System Settings, Koe's windows stay out of the way:
-    // they would hide the list, and the Touch ID prompt that comes with it.
-
-    // (NSApp.hide leaves a menu bar app's windows on screen: they are taken
-    // off it instead.)
+    // While you are in System Settings, Koe's window waits behind it, never
+    // hidden: once the permission comes on (or System Settings closes) it
+    // comes back to the front, with the step done or its button still there.
     private var steppedAside: NSWindow?
 
     private func stepAside() {
-        guard let window = [Windows.welcomeWindow, Windows.settingsWindow].compactMap({ $0 }).first(where: \.isVisible) else { return }
-        steppedAside = window
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            if self?.steppedAside === window { window.orderOut(nil) }
-        }
+        steppedAside = [Windows.welcomeWindow, Windows.settingsWindow].compactMap({ $0 }).first(where: \.isVisible)
         watchPermissions()
     }
 
     // A permission just came on, or System Settings was closed: back.
     private func comeBack(gained: Bool) {
         if gained { play(.check(true)) }
+        if gained || state.accessibility { guide.hide() }
         guard let window = steppedAside else { return }
         steppedAside = nil
         NSApp.activate(ignoringOtherApps: true)
@@ -681,6 +740,9 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let before = (self.state.microphone, self.state.accessibility)
                 self.checkPermissions()
                 let gained = (before.0 != true && self.state.microphone == true) || (!before.1 && self.state.accessibility)
+                if NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences").isEmpty || self.state.accessibility {
+                    self.guide.hide()
+                }
                 if gained {
                     self.comeBack(gained: true)
                 } else if self.steppedAside != nil,

@@ -5,6 +5,15 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.0 - 2026-10-15
+
+- A new menu, shared with Wham: Return after typing, Polish and Sounds tick on and off right in it, and the menu stays open; Check for Updates answers in place; About Koe shows your version. It's narrower, with your last dictations on one line each and how long ago on the right.
+- Choose where the pill shows while you talk: Settings › Koe › Pill while you talk, at the bottom, top, left or right of the screen.
+- Dictating in the middle of a sentence no longer starts with a stray capital: after a word or a comma, the first word stays lowercase (names, acronyms and “I” keep theirs).
+- Setting up is sturdier: if Koe is missing from the Accessibility list, a card next to System Settings lets you drag it in, and the welcome window waits until it's on. Opened from the disk image, Koe offers to move itself to Applications first.
+- Try it shows your first words with a check, right where you said them, and waits for Continue. If another dictation app that may use fn is open, Koe says so before it gets in the way.
+- Smaller things: a thin scroll bar in Settings, and turning sounds off plays one last sound.
+
 ## 2.1.1 - 2026-10-15
 
 - Polishing is easier to find and to follow: How Koe works, in Settings, says what it is and names the model; Koe tells you when it's ready after its download; and if the model can't start, Settings says so rather than blaming the connection.

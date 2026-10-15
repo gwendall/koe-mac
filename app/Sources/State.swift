@@ -30,6 +30,7 @@ final class KoeState: ObservableObject {
     @Published var submits = UserDefaults.standard.bool(forKey: "submits")
     @Published var keepsRecent = !UserDefaults.standard.bool(forKey: "forgetRecent")
     @Published var muted = UserDefaults.standard.bool(forKey: "muted")
+    @Published var place = Indicator.Place.saved
     @Published var login = false
     @Published var updates = Update.isOn
     @Published var inputs: [Devices.Input] = []
@@ -50,6 +51,8 @@ final class KoeState: ObservableObject {
     var copyReport: () -> Void = {}
     var finishWelcome: () -> Void = {}
     var celebrate: () -> Void = {}
+    var cheer: () -> Void = {}
+    var showPill: () -> Void = {}
     // Set while the welcome's try-it box is on screen: the words go there.
     var tryIt: ((String) -> Void)?
 
@@ -68,6 +71,7 @@ final class KoeState: ObservableObject {
         defaults.set(polish, forKey: "polish")
         defaults.set(!keepsRecent, forKey: "forgetRecent")
         defaults.set(muted, forKey: "muted")
+        defaults.set(place.rawValue, forKey: "indicatorPlace")
         Update.isOn = updates
         Devices.chosen = input
         Vocabulary.words = words

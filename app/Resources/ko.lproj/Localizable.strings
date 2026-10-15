@@ -90,7 +90,6 @@
 "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings." = "Koe는 위쪽 메뉴 막대의 작은 말풍선입니다. 클릭하면 최근 받아쓰기와 설정을 볼 수 있습니다.";
 "Change the Shortcut…" = "단축키 변경…";
 "Skip" = "건너뛰기";
-"Done" = "완료";
 
 "Koe Settings" = "Koe 설정";
 "Permissions" = "권한";
@@ -177,3 +176,18 @@
 "What's New" = "새로운 기능";
 "Recent" = "최근";
 "now" = "방금";
+"%@ is open and may use fn too: both would start at once." = "%@이(가) 열려 있고 fn을 사용할 수 있어요. 둘이 동시에 시작돼요.";
+"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@도 fn을 사용해 Koe와 함께 시작될 수 있어요. 종료하거나, 아래 단축키 변경에서 Koe에 다른 키를 지정하세요.";
+"Bottom" = "아래";
+"Top" = "위";
+"Left" = "왼쪽";
+"Right" = "오른쪽";
+"Drag Koe into the list" = "Koe를 목록으로 드래그하세요";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe를 옮기지 못했어요: %@. 대신 응용 프로그램으로 드래그하세요.";
+"Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe가 디스크 이미지에서 실행 중이에요. 응용 프로그램에 두면 macOS가 권한을 유지하고, 로그인 시 열 수 있어요.";
+"Not in it? Drag the bubble into the list." = "목록에 없나요? 말풍선을 목록으로 드래그하세요.";
+"Pill while you talk" = "말하는 동안 표시";
+"Turn Koe on in this list" = "이 목록에서 Koe를 켜세요";
+"Move Koe to Applications?" = "Koe을 응용 프로그램 폴더로 이동하시겠습니까?";
+"Move to Applications" = "응용 프로그램 폴더로 이동";
+"Not Now" = "지금 안 함";

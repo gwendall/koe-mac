@@ -90,7 +90,6 @@
 "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings." = "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings.";
 "Change the Shortcut…" = "Change the Shortcut…";
 "Skip" = "Skip";
-"Done" = "Done";
 
 "Koe Settings" = "Koe Settings";
 "Permissions" = "Permissions";
@@ -177,3 +176,18 @@
 "What's New" = "What's New";
 "Recent" = "Recent";
 "now" = "now";
+"%@ is open and may use fn too: both would start at once." = "%@ is open and may use fn too: both would start at once.";
+"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below.";
+"Bottom" = "Bottom";
+"Top" = "Top";
+"Left" = "Left";
+"Right" = "Right";
+"Drag Koe into the list" = "Drag Koe into the list";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe could not move itself: %@. Drag it into Applications instead.";
+"Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login.";
+"Not in it? Drag the bubble into the list." = "Not in it? Drag the bubble into the list.";
+"Pill while you talk" = "Pill while you talk";
+"Turn Koe on in this list" = "Turn Koe on in this list";
+"Move Koe to Applications?" = "Move Koe to Applications?";
+"Move to Applications" = "Move to Applications";
+"Not Now" = "Not Now";

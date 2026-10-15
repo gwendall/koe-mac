@@ -1,4 +1,5 @@
 import AppKit
+import NaturalLanguage
 import Carbon.HIToolbox
 import CoreGraphics
 
@@ -23,8 +24,13 @@ enum Paster {
     static func type(_ text: String, into verdict: Target.Verdict, submit: Bool, follows: Character? = nil) async -> Result {
         var text = text
         switch verdict {
-        case .field(let field): text = joined(text, after: Target.characterBeforeCursor(in: field.element) ?? follows)
-        case .unknown: text = joined(text, after: follows)
+        case .field(let field):
+            let before = Target.textBeforeCursor(in: field.element)
+            text = continued(text, after: before ?? follows.map(String.init))
+            text = joined(text, after: before.flatMap(\.last) ?? follows)
+        case .unknown:
+            text = continued(text, after: follows.map(String.init))
+            text = joined(text, after: follows)
         case .nowhere: break
         }
         let board = NSPasteboard.general
@@ -87,6 +93,31 @@ enum Paster {
     // Right after a word or a full stop, a space: two dictations in a row
     // read as two sentences, not "one.Two". Never after an opening mark,
     // and never before the words' own punctuation.
+    // Words dictated in the middle of a sentence: the transcript starts with
+    // a capital, as a sentence does; after a word or a comma it goes. Only on
+    // a plain word (not "I", a name, an acronym or a dictionary word).
+    static func continued(_ text: String, after before: String?) -> String {
+        guard let last = before?.last(where: { !$0.isWhitespace }), last.isLetter || last.isNumber || ",;".contains(last),
+              let word = text.split(whereSeparator: { !$0.isLetter && $0 != "'" && $0 != "’" }).first,
+              text.hasPrefix(word), let first = word.first, first.isUppercase,
+              word.dropFirst().allSatisfy({ !$0.isUppercase }) else { return text }
+        let plain = word.lowercased()
+        let pronoun = ["i", "i'm", "i’m", "i'll", "i’ll", "i've", "i’ve", "i'd", "i’d"]
+        // German writes its nouns with a capital, mid-sentence too.
+        guard NLLanguageRecognizer.dominantLanguage(for: (before ?? "") + " " + text) != .german else { return text }
+        guard !pronoun.contains(plain), !Vocabulary.words.contains(where: { $0.lowercased() == plain }),
+              Vocabulary.isWord(plain), !named(text, word: word) else { return text }
+        return first.lowercased() + text.dropFirst()
+    }
+
+    // The word is a person, a place or an organization, as the tagger reads it.
+    private static func named(_ text: String, word: Substring) -> Bool {
+        let tagger = NLTagger(tagSchemes: [.nameType])
+        tagger.string = text
+        let (tag, _) = tagger.tag(at: word.startIndex, unit: .word, scheme: .nameType)
+        return [.personalName, .placeName, .organizationName].contains(tag)
+    }
+
     nonisolated static func joined(_ text: String, after before: Character?) -> String {
         guard let before, let first = text.first, !before.isWhitespace, !"([{\"'«“‘/-@#".contains(before),
               !first.isWhitespace, !",.;:!?)]}…".contains(first) else { return text }

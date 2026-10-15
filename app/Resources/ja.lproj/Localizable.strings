@@ -90,7 +90,6 @@
 "Koe lives in the menu bar, up there: the little bubble. Click it for your last dictations and settings." = "Koeは画面上部のメニューバーにいる小さな吹き出しです。クリックすると、最近の音声入力と設定が表示されます。";
 "Change the Shortcut…" = "ショートカットを変更…";
 "Skip" = "スキップ";
-"Done" = "完了";
 
 "Koe Settings" = "Koeの設定";
 "Permissions" = "アクセス権";
@@ -177,3 +176,18 @@
 "What's New" = "新機能";
 "Recent" = "最近";
 "now" = "たった今";
+"%@ is open and may use fn too: both would start at once." = "%@ が起動中で、fn を使っている可能性があります。両方が同時に動き出します。";
+"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ も fn を使っていて、Koe と一緒に動き出すかもしれません。終了するか、下の「ショートカットを変更」で Koe に別のキーを割り当ててください。";
+"Bottom" = "下";
+"Top" = "上";
+"Left" = "左";
+"Right" = "右";
+"Drag Koe into the list" = "Koe をリストにドラッグ";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe を移動できませんでした：%@。「アプリケーション」にドラッグしてください。";
+"Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe はディスクイメージから起動しています。「アプリケーション」に置けば macOS が許可を保持し、ログイン時に開けます。";
+"Not in it? Drag the bubble into the list." = "見つからない？バブルをリストにドラッグしてください。";
+"Pill while you talk" = "話している間のピル";
+"Turn Koe on in this list" = "このリストで Koe をオンに";
+"Move Koe to Applications?" = "Koeをアプリケーションフォルダに移動しますか？";
+"Move to Applications" = "アプリケーションに移動";
+"Not Now" = "今はしない";
