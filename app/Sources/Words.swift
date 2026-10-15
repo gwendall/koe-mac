@@ -33,6 +33,12 @@ enum Words {
         return format.string(from: NSNumber(value: Double(value) / 100)) ?? "\(value)%"
     }
 
+    // The pictures (`--render-toasts`, `--render-journey`) are in English,
+    // unless `-AppleLanguages '(fr)'` on the command line asks for another.
+    static var languageAsked: Bool {
+        UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["AppleLanguages"] != nil
+    }
+
     // The language the app speaks: "en", "fr", "zh-Hans".
     static var language: String { english ? "en" : Bundle.main.preferredLocalizations.first ?? "en" }
 }

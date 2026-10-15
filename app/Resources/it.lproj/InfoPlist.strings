@@ -1,0 +1,3 @@
+/* Koe in Italian: what macOS shows when Koe asks for the microphone. */
+
+"NSMicrophoneUsageDescription" = "Koe ti sente solo mentre tieni premuto fn, e trasforma le tue parole in testo su questo Mac.";

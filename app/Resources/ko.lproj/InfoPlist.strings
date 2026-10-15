@@ -1,0 +1,3 @@
+/* Koe in Korean: what macOS shows when Koe asks for the microphone. */
+
+"NSMicrophoneUsageDescription" = "Koe는 fn 키를 누르고 있는 동안에만 듣고, 이 Mac에서 말을 텍스트로 바꿉니다.";

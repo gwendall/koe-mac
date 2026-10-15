@@ -8,7 +8,7 @@ enum SelfTest {
     private static var failures = 0
     private static var checks = 0
 
-    private static func check(_ condition: Bool, _ name: String) {
+    static func check(_ condition: Bool, _ name: String) {
         checks += 1
         if !condition {
             failures += 1
@@ -23,6 +23,7 @@ enum SelfTest {
         shortcuts()
         hotkey()
         journal()
+        languages()
         print("\(checks - failures)/\(checks) checks passed")
         return failures == 0 ? 0 : 1
     }
