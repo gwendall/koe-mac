@@ -425,6 +425,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         state.polishFailed = false
+        state.polishLoadFailed = false
         if PolishModel.installed { return loadPolish() }
         guard state.polishShare == nil else { return } // already coming
         state.polishShare = 0
@@ -432,7 +433,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             do {
                 try await PolishModel.download { share in self?.state.polishShare = share }
                 self?.state.polishShare = nil
-                if self?.state.polish == true { self?.loadPolish() }
+                if self?.state.polish == true { self?.loadPolish(announce: true) }
             } catch {
                 self?.state.polishShare = nil
                 self?.state.polishFailed = true
@@ -441,7 +442,8 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func loadPolish() {
+    // `announce`: just downloaded, the settings maybe closed long ago: say it's on.
+    private func loadPolish(announce: Bool = false) {
         Task { [weak self] in
             guard let self else { return }
             let started = Date()
@@ -449,8 +451,13 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try await polisher.load(PolishModel.file)
                 state.polishReady = state.polish
                 Log.note("polish", ["loaded_ms": Int(Date().timeIntervalSince(started) * 1000)])
+                if announce, state.polishReady, phase == .idle {
+                    play(.check(true))
+                    pop(Toast.note(Words.say("POLISHING IS ON"), Words.say("Your words are polished before they're typed")))
+                }
             } catch {
                 state.polishFailed = true
+                state.polishLoadFailed = true
                 Log.note("polish", ["load": "failed"])
             }
         }

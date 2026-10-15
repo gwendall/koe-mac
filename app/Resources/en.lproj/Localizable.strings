@@ -160,3 +160,9 @@
 "A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second." = "A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second.";
 "Downloading once (1.3 GB): %@. Koe types without it meanwhile." = "Downloading once (1.3 GB): %@. Koe types without it meanwhile.";
 "On, on this Mac: your words are polished before they're typed." = "On, on this Mac: your words are polished before they're typed.";
+"Couldn't start the model on this Mac. Try again." = "Couldn't start the model on this Mac. Try again.";
+"POLISHING IS ON" = "POLISHING IS ON";
+"Your words are polished before they're typed" = "Your words are polished before they're typed";
+"Polished, if you like" = "Polished, if you like";
+"Turn on Polish the words, under Typing: Qwen3.5 2B, a small open model, tidies your words on this Mac in about a tenth of a second." = "Turn on Polish the words, under Typing: Qwen3.5 2B, a small open model, tidies your words on this Mac in about a tenth of a second.";
+"Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT)." = "Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT).";

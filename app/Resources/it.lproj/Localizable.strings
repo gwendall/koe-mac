@@ -160,3 +160,9 @@
 "A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second." = "Un piccolo modello linguistico su questo Mac toglie ripetizioni e ripensamenti, scrive le parole del tuo dizionario e corregge la punteggiatura. 1,3 GB, scaricato una volta; aggiunge circa un decimo di secondo.";
 "Downloading once (1.3 GB): %@. Koe types without it meanwhile." = "Download una tantum (1,3 GB): %@. Intanto Koe scrive senza.";
 "On, on this Mac: your words are polished before they're typed." = "Attivo, su questo Mac: le tue parole vengono rifinite prima di essere scritte.";
+"Couldn't start the model on this Mac. Try again." = "Il modello non è riuscito ad avviarsi su questo Mac. Riprova.";
+"POLISHING IS ON" = "RIFINITURA ATTIVA";
+"Your words are polished before they're typed" = "Le tue parole vengono rifinite prima di essere scritte";
+"Polished, if you like" = "Rifinito, se vuoi";
+"Turn on Polish the words, under Typing: Qwen3.5 2B, a small open model, tidies your words on this Mac in about a tenth of a second." = "Attiva Rifinire le parole, in Scrittura: Qwen3.5 2B, un piccolo modello aperto, sistema le tue parole su questo Mac in circa un decimo di secondo.";
+"Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT)." = "Rifinitura: Qwen3.5 2B del team Qwen (Apache 2.0), tramite llama.cpp (MIT).";

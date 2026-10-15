@@ -604,9 +604,12 @@ struct SettingsView: View {
                         detail: Words.say("No account, no server, works offline. Your voice is never sent anywhere."))
                 FactRow(icon: Facts.globe, title: Words.say("25 languages"),
                         detail: Words.say("It finds yours on its own, even when you switch mid-dictation."))
+                FactRow(icon: Facts.sparkle, title: Words.say("Polished, if you like"),
+                        detail: Words.say("Turn on Polish the words, under Typing: Qwen3.5 2B, a small open model, tidies your words on this Mac in about a tenth of a second."))
                 FactRow(icon: Facts.book, title: Words.say("Your words"),
                         detail: Words.say("Add names and jargon to the dictionary, and Koe spells them your way."))
-                Text(Words.say("Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0."))
+                Text(Words.say("Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0.")
+                     + " " + Words.say("Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT)."))
                     .font(Brand.body(10)).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
             }
 
@@ -637,6 +640,7 @@ struct SettingsView: View {
         guard state.polish else {
             return Words.say("A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second.")
         }
+        if state.polishLoadFailed { return Words.say("Couldn't start the model on this Mac. Try again.") }
         if state.polishFailed { return Words.say("The download stopped. Check your connection.") }
         if let share = state.polishShare {
             return Words.say("Downloading once (1.3 GB): %@. Koe types without it meanwhile.", Words.percent(Int(share * 100)))
@@ -676,6 +680,7 @@ enum Facts {
     static let bolt = icon(["....###..", "...###...", "..###....", ".#######.", "....###..", "...###...", "..###....", ".##......", "........."])
     static let lock = icon(["...###...", "..#...#..", "..#...#..", ".#######.", ".#######.", ".###.###.", ".###.###.", ".#######.", "........."])
     static let globe = icon(["..#####..", ".#..#..#.", "#..#.#..#", "#########", "#..#.#..#", "#########", "#..#.#..#", ".#..#..#.", "..#####.."])
+    static let sparkle = icon(["....#....", "....#....", "...###...", "..#####..", "#########", "..#####..", "...###...", "....#....", "....#...."])
     static let book = icon([".###.###.", "#...#...#", "#.#.#.#.#", "#...#...#", "#.#.#.#.#", "#...#...#", "#########", ".........", "........."])
 
     private static func icon(_ rows: [String]) -> NSImage {

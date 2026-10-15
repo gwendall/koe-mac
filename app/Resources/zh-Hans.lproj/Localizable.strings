@@ -160,3 +160,9 @@
 "A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second." = "这台 Mac 上的小型语言模型会去掉重复和改口，按你的词典拼写词语，并修正标点。1.3 GB，只需下载一次；大约多花十分之一秒。";
 "Downloading once (1.3 GB): %@. Koe types without it meanwhile." = "仅需下载一次（1.3 GB）：%@。在此期间，Koe 不经润色直接输入。";
 "On, on this Mac: your words are polished before they're typed." = "已开启，在这台 Mac 上：文字在输入前先经过润色。";
+"Couldn't start the model on this Mac. Try again." = "无法在这台 Mac 上启动模型。请重试。";
+"POLISHING IS ON" = "润色已开启";
+"Your words are polished before they're typed" = "文字在输入前先经过润色";
+"Polished, if you like" = "可选润色";
+"Turn on Polish the words, under Typing: Qwen3.5 2B, a small open model, tidies your words on this Mac in about a tenth of a second." = "在“输入”中开启“润色文字”：小型开放模型 Qwen3.5 2B 会在这台 Mac 上，用大约十分之一秒整理你的文字。";
+"Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT)." = "润色：Qwen 团队的 Qwen3.5 2B（Apache 2.0），通过 llama.cpp（MIT）运行。";

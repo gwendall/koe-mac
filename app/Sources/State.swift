@@ -20,6 +20,8 @@ final class KoeState: ObservableObject {
     @Published var polishShare: Double?
     @Published var polishReady = false
     @Published var polishFailed = false
+    // Downloaded, but llama.cpp couldn't start it: not the connection's fault.
+    @Published var polishLoadFailed = false
     // The shortcut, and recording a new one.
     @Published var shortcut = Shortcut.saved
     @Published var capturing = false

@@ -33,6 +33,7 @@ enum Shots {
             ("copied-refused", copied(Words.say("The field didn't take it"))),
             ("copied-from-menu", Toast.note(Words.say("COPIED"), Words.say("Paste it anywhere with ⌘V"))),
             ("cancelled", Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed"))),
+            ("polishing-on", Toast.note(Words.say("POLISHING IS ON"), Words.say("Your words are polished before they're typed"))),
             ("recovered", Toast.note(Words.say("RECOVERED"), Words.say("Your last dictation is on the clipboard"))),
             ("no-answer", Toast.note(Words.say("NO ANSWER"), Words.say("Couldn't check for updates"))),
             ("up-to-date", Toast.note(Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", "2.0.0"))),
