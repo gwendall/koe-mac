@@ -143,3 +143,15 @@
 "⌘Space opens Spotlight" = "⌘Leertaste öffnet Spotlight";
 "%1$@: “%2$@”" = "%1$@: „%2$@“";
 "So Koe hears you on this Mac, never online." = "Damit Koe dich auf diesem Mac hört, nie online.";
+"How Koe works" = "So funktioniert Koe";
+"It hears you on this Mac" = "Er hört dich auf diesem Mac";
+"Parakeet Ultra, an open-weight model built on NVIDIA's Parakeet, runs on your chip's Neural Engine." = "Parakeet Ultra, ein Modell mit offenen Gewichten auf Basis von NVIDIAs Parakeet, läuft auf der Neural Engine deines Chips.";
+"In a tenth of a second" = "In einer Zehntelsekunde";
+"No round trip to a server: a sentence is typed the moment you let go." = "Kein Umweg über einen Server: Ein Satz steht da, sobald du loslässt.";
+"Nothing leaves your Mac" = "Nichts verlässt deinen Mac";
+"No account, no server, works offline. Your voice is never sent anywhere." = "Kein Konto, kein Server, funktioniert offline. Deine Stimme wird nirgendwohin geschickt.";
+"25 languages" = "25 Sprachen";
+"It finds yours on its own, even when you switch mid-dictation." = "Er erkennt deine von selbst, auch wenn du mitten im Diktat wechselst.";
+"Your words" = "Deine Wörter";
+"Add names and jargon to the dictionary, and Koe spells them your way." = "Füg Namen und Fachbegriffe zum Wörterbuch hinzu, und Koe schreibt sie wie du.";
+"Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra von moondream, nach NVIDIA Parakeet TDT 0.6B v3. Core ML von FluidInference. CC BY 4.0.";

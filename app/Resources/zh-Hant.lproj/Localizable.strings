@@ -143,3 +143,15 @@
 "⌘Space opens Spotlight" = "⌘空白鍵 會打開 Spotlight";
 "%1$@: “%2$@”" = "%1$@：「%2$@」";
 "So Koe hears you on this Mac, never online." = "這樣 Koe 只在這台 Mac 上聽你說話，從不連網。";
+"How Koe works" = "Koe 如何運作";
+"It hears you on this Mac" = "在這台 Mac 上聽你說話";
+"Parakeet Ultra, an open-weight model built on NVIDIA's Parakeet, runs on your chip's Neural Engine." = "Parakeet Ultra 是以 NVIDIA Parakeet 為基礎的開放權重模型，在你晶片的神經網路引擎上執行。";
+"In a tenth of a second" = "只需十分之一秒";
+"No round trip to a server: a sentence is typed the moment you let go." = "無需往返伺服器：一放開，整句話就輸入好了。";
+"Nothing leaves your Mac" = "什麼都不會離開你的 Mac";
+"No account, no server, works offline. Your voice is never sent anywhere." = "無需帳號，沒有伺服器，可離線使用。你的聲音從不會被傳送到任何地方。";
+"25 languages" = "25 種語言";
+"It finds yours on its own, even when you switch mid-dictation." = "自動辨識你說的語言，聽寫中途切換也沒問題。";
+"Your words" = "你的詞語";
+"Add names and jargon to the dictionary, and Koe spells them your way." = "把名字和行話加入辭典，Koe 就會按你的寫法拼寫。";
+"Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra 由 moondream 以 NVIDIA Parakeet TDT 0.6B v3 為基礎打造，Core ML 版本由 FluidInference 提供。CC BY 4.0。";

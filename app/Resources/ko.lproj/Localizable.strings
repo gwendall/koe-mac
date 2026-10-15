@@ -143,3 +143,15 @@
 "⌘Space opens Spotlight" = "⌘스페이스는 Spotlight를 엽니다";
 "%1$@: “%2$@”" = "%1$@: “%2$@”";
 "So Koe hears you on this Mac, never online." = "Koe가 온라인이 아닌 이 Mac 안에서만 듣기 위해서입니다.";
+"How Koe works" = "Koe의 작동 방식";
+"It hears you on this Mac" = "이 Mac 안에서 듣습니다";
+"Parakeet Ultra, an open-weight model built on NVIDIA's Parakeet, runs on your chip's Neural Engine." = "NVIDIA Parakeet을 기반으로 한 오픈 웨이트 모델 Parakeet Ultra가 칩의 Neural Engine에서 실행됩니다.";
+"In a tenth of a second" = "단 0.1초 만에";
+"No round trip to a server: a sentence is typed the moment you let go." = "서버를 오가지 않습니다. 키를 놓는 순간 문장이 입력됩니다.";
+"Nothing leaves your Mac" = "아무것도 Mac 밖으로 나가지 않습니다";
+"No account, no server, works offline. Your voice is never sent anywhere." = "계정도 서버도 없이 오프라인에서도 작동합니다. 목소리는 어디로도 전송되지 않습니다.";
+"25 languages" = "25개 언어";
+"It finds yours on its own, even when you switch mid-dictation." = "말하는 언어를 스스로 알아냅니다. 받아쓰기 중에 바꿔도 괜찮습니다.";
+"Your words" = "나만의 단어";
+"Add names and jargon to the dictionary, and Koe spells them your way." = "이름과 전문 용어를 사전에 추가하면 Koe가 내 방식대로 적습니다.";
+"Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra: moondream (NVIDIA Parakeet TDT 0.6B v3 기반). Core ML: FluidInference. CC BY 4.0.";

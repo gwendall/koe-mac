@@ -352,6 +352,8 @@ extension Notification.Name {
 
 struct SettingsView: View {
     @ObservedObject var state: KoeState
+    // Taller only to draw the whole form at once (`--render-journey`).
+    var height: CGFloat = 640
     @State private var newWord = ""
 
     var body: some View {
@@ -452,6 +454,21 @@ struct SettingsView: View {
                 }
             }
 
+            Section(Words.say("How Koe works")) {
+                FactRow(icon: Facts.chip, title: Words.say("It hears you on this Mac"),
+                        detail: Words.say("Parakeet Ultra, an open-weight model built on NVIDIA's Parakeet, runs on your chip's Neural Engine."))
+                FactRow(icon: Facts.bolt, title: Words.say("In a tenth of a second"),
+                        detail: Words.say("No round trip to a server: a sentence is typed the moment you let go."))
+                FactRow(icon: Facts.lock, title: Words.say("Nothing leaves your Mac"),
+                        detail: Words.say("No account, no server, works offline. Your voice is never sent anywhere."))
+                FactRow(icon: Facts.globe, title: Words.say("25 languages"),
+                        detail: Words.say("It finds yours on its own, even when you switch mid-dictation."))
+                FactRow(icon: Facts.book, title: Words.say("Your words"),
+                        detail: Words.say("Add names and jargon to the dictionary, and Koe spells them your way."))
+                Text(Words.say("Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0."))
+                    .font(Brand.body(10)).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("Koe") {
                 Toggle(Words.say("Sounds"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
                 Toggle(Words.say("Open at Login"), isOn: Binding(get: { state.login }, set: { state.setLogin($0) }))
@@ -463,7 +480,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .tint(Color(cg: Pixels.candy[0]))
-        .frame(width: 480, height: 640)
+        .frame(width: 480, height: height)
         .onChange(of: state.toggles) { state.save() }
         .onChange(of: state.submits) { state.save() }
         .onChange(of: state.keepsRecent) { state.save() }
@@ -478,5 +495,36 @@ struct SettingsView: View {
         guard !word.isEmpty, !state.words.contains(word) else { return }
         state.words.append(word)
         newWord = ""
+    }
+}
+
+// One thing that makes Koe what it is, with its pixel icon.
+struct FactRow: View {
+    let icon: NSImage
+    let title: String
+    let detail: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(nsImage: icon).interpolation(.none).resizable().frame(width: 18, height: 18).padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(Brand.body(13, weight: .semibold))
+                Text(detail).font(Brand.body(11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+// The settings' pixel icons, 9 by 9, in bubblegum.
+enum Facts {
+    static let chip = icon(["..#.#.#..", ".#######.", "##.....##", ".#.###.#.", "##.###.##", ".#.###.#.", "##.....##", ".#######.", "..#.#.#.."])
+    static let bolt = icon(["....###..", "...###...", "..###....", ".#######.", "....###..", "...###...", "..###....", ".##......", "........."])
+    static let lock = icon(["...###...", "..#...#..", "..#...#..", ".#######.", ".#######.", ".###.###.", ".###.###.", ".#######.", "........."])
+    static let globe = icon(["..#####..", ".#..#..#.", "#..#.#..#", "#########", "#..#.#..#", "#########", "#..#.#..#", ".#..#..#.", "..#####.."])
+    static let book = icon([".###.###.", "#...#...#", "#.#.#.#.#", "#...#...#", "#.#.#.#.#", "#...#...#", "#########", ".........", "........."])
+
+    private static func icon(_ rows: [String]) -> NSImage {
+        let image = Pixels.image(rows, color: Pixels.candy[0])
+        return image.map { NSImage(cgImage: $0, size: NSSize(width: 9, height: 9)) } ?? NSImage()
     }
 }

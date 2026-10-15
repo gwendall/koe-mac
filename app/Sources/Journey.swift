@@ -38,6 +38,7 @@ enum Journey {
             ("14-settings-refused", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.captureError = Shortcut(kind: .combo, keyCode: 8, modifiers: NSEvent.ModifierFlags.command.rawValue).refusal })), NSSize(width: 480, height: 640)),
             ("15-settings-modifier", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.shortcut = Shortcut(kind: .modifier, keyCode: 61) })), NSSize(width: 480, height: 640)),
             ("16-settings-missing-permissions", AnyView(SettingsView(state: state { $0.microphone = false; $0.accessibility = false })), NSSize(width: 480, height: 640)),
+            ("18-settings-how-koe-works", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
             ("17-settings-dictionary", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.words = ["Gwendall", "Koe", "FluidAudio"]; $0.submits = true })), NSSize(width: 480, height: 640)),
         ]
         for (name, view, size) in screens {
