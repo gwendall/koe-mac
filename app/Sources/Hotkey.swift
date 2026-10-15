@@ -49,6 +49,10 @@ final class Hotkey {
     private var capturedModifier: UInt16?
     private var capturedFn = false
     private var capturedCombo: Shortcut?
+    // An Escape Koe took: its repeats and its release are Koe's too. Terminals
+    // that report key releases (the kitty protocol: Ghostty, cmux) would hand
+    // Claude Code the release, and it stops on any Escape.
+    private(set) var escapeTaken = false
 
     static let systemDefined = CGEventType(rawValue: 14)!
 
@@ -114,6 +118,7 @@ final class Hotkey {
     private func reset() {
         fnDown = CGEventSource.flagsState(.combinedSessionState).contains(.maskSecondaryFn)
         comboDown = false
+        escapeTaken = false
         modifierDown = false
         modifierClean = false
     }
@@ -129,8 +134,13 @@ final class Hotkey {
         let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
         if isCapturing { return captureEvent(type, event, code) }
 
-        if type == .keyDown, code == 53, escapeActive {
-            onEscape?()
+        if code == 53, type == .keyDown || type == .keyUp, escapeTaken || (type == .keyDown && escapeActive) {
+            if type == .keyUp {
+                escapeTaken = false
+            } else if !escapeTaken {
+                escapeTaken = true
+                onEscape?()
+            }
             return false
         }
 

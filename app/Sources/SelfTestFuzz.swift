@@ -86,11 +86,12 @@ extension SelfTest {
                 for _ in 0..<dice.int(1...40) {
                     let (type, event) = randomEvent(&dice)
                     let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+                    let taken = hotkey.escapeTaken
                     let passed = hotkey.handle(type, event)
                     // A plain key that is neither the shortcut, fn nor Escape must reach the app.
                     let mine = code == shortcut.keyCode || code == 63 || code == 179 || code == 53
                     if (type == .keyDown || type == .keyUp), !mine, !passed { leaked = "key \(code) kept from the app" }
-                    if type == .keyDown, code == 53, !hotkey.escapeActive, !passed { leaked = "Escape kept while idle" }
+                    if type == .keyDown, code == 53, !hotkey.escapeActive, !taken, !passed { leaked = "Escape kept while idle" }
                 }
                 // Every key up.
                 switch shortcut.kind {

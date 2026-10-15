@@ -153,6 +153,12 @@ enum SelfTest {
         hotkey.escapeActive = true
         check(!hotkey.handle(.keyDown, event(.keyDown, 53)), "escape: kept while Koe listens")
         check(log == ["escape"], "escape: cancels")
+        hotkey.escapeActive = false // the dictation is gone; the key is still down
+        check(!hotkey.handle(.keyDown, event(.keyDown, 53, repeating: true)), "escape: its repeats stay Koe's")
+        check(!hotkey.handle(.keyUp, event(.keyUp, 53)), "escape: its release stays Koe's (terminals report releases)")
+        check(log == ["escape"], "escape: cancels once")
+        check(hotkey.handle(.keyUp, event(.keyUp, 53)), "escape: the next release is the app's")
+        hotkey.escapeActive = true
         let touches = hotkey.touches
         _ = hotkey.handle(.keyDown, event(.keyDown, 0))
         _ = hotkey.handle(.leftMouseDown, event(.leftMouseDown, 0))

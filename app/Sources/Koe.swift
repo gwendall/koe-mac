@@ -75,12 +75,12 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recorder.onLevel = { [weak self] level in self?.heard(level) }
         recorder.onInterrupted = { [weak self] in
             Log.note("microphone", ["changed": "while listening"])
-            self?.finish()
+            self?.finish(tail: 0)
         }
 
         let center = NSWorkspace.shared.notificationCenter
         center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { if self?.phase == .listening { self?.finish() } }
+            MainActor.assumeIsolated { if self?.phase == .listening { self?.finish(tail: 0) } }
         }
         center.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.poweringOff = true }
@@ -304,13 +304,27 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func finish() {
+    // The key comes up as the last syllable ends, and the audio of it is still
+    // on its way: the microphone listens a moment longer before it stops
+    // (less after a tap, which comes once the talking is done). The sound and
+    // the pill answer at once. Koe 0.1 lost last words without this.
+    private func finish(tail: TimeInterval? = nil) {
         guard phase == .listening, let journal else { return }
         limitTimer?.invalidate()
-        let samples = recorder.stop()
-        journal.saved()
         play(.stop)
         let seconds = Date().timeIntervalSince(startedAt)
+        phase = .transcribing
+        indicator.work()
+        let current = dictation
+        DispatchQueue.main.asyncAfter(deadline: .now() + (tail ?? (latched ? 0.2 : 0.35))) { [weak self] in
+            guard let self, self.dictation == current else { return } // cancelled meanwhile
+            self.close(journal, after: seconds)
+        }
+    }
+
+    private func close(_ journal: Journal, after seconds: TimeInterval) {
+        let samples = recorder.stop()
+        journal.saved()
         // A tap on the shortcut, not a dictation.
         guard seconds > 0.25, samples.count > 4_000 else {
             Log.note("dictation", ["tap": true])
@@ -332,8 +346,6 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Log.note("dictation", ["silent": true, "seconds": Int(seconds)])
             return
         }
-        phase = .transcribing
-        indicator.work()
         let current = dictation
         let origin = self.origin ?? Target.origin()
         Task { [weak self] in
@@ -451,7 +463,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             limitTimer?.invalidate()
             _ = recorder.stop()
         case .transcribing:
-            break
+            _ = recorder.stop() // still listening out its tail, maybe
         case .typing, .idle:
             return
         }
