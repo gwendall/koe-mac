@@ -9,6 +9,7 @@ What changed in each version of Koe, newest first. Also on
 
 - The last words of a dictation are no longer cut off: Koe keeps listening a moment after you let go of fn.
 - Escape cancels a dictation without reaching the app behind it: in a terminal, Claude Code no longer stops its work too.
+- The pill at the bottom of the screen no longer flashes a wave after every dictation: it shows one only when the words take a moment.
 
 ## 2.0.1 - 2026-10-15
 
