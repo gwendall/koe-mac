@@ -61,7 +61,13 @@ enum Paster {
                     break
                 }
             }
-            if result != .typed, field.received(text) == false { result = .copied(Words.say("The field didn't take it")) }
+            // Not the words as said, but the field changed: a terminal wraps
+            // them, Claude Code folds a long paste into "[Pasted text]", an
+            // app corrects them. They landed; only a field left as it was
+            // didn't take them (and never gets Return).
+            if result != .typed, field.received(text) == false, field.unchanged != false {
+                result = .copied(Words.say("The field didn't take it"))
+            }
         }
 
         if case .copied = result { return result }

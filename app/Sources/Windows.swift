@@ -357,6 +357,22 @@ struct SettingsView: View {
     @State private var newWord = ""
 
     var body: some View {
+        ZStack(alignment: .top) {
+            form
+            // The title bar is see-through: what scrolls under it fades out
+            // instead of running into the title.
+            LinearGradient(stops: [.init(color: Color(nsColor: .windowBackgroundColor), location: 0),
+                                   .init(color: Color(nsColor: .windowBackgroundColor), location: 0.55),
+                                   .init(color: Color(nsColor: .windowBackgroundColor).opacity(0), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: 52)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+        }
+        .frame(width: 480, height: height)
+    }
+
+    private var form: some View {
         Form {
             Section {
                 HStack(spacing: 14) {
@@ -480,7 +496,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .tint(Color(cg: Pixels.candy[0]))
-        .frame(width: 480, height: height)
         .onChange(of: state.toggles) { state.save() }
         .onChange(of: state.submits) { state.save() }
         .onChange(of: state.keepsRecent) { state.save() }

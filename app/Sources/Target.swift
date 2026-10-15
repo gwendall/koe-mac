@@ -32,6 +32,12 @@ enum Target {
             guard let before, let now = Target.value(of: element) else { return nil }
             return Target.arrived(text, before: before, now: now)
         }
+
+        // Whether the field still reads as it did before the paste.
+        var unchanged: Bool? {
+            guard let before, let now = Target.value(of: element) else { return nil }
+            return now == before
+        }
     }
 
     enum Verdict {
