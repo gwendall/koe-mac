@@ -1059,13 +1059,10 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let view = UpdateRow(updateState, width: MenuRow.width(for: Line.all(running: Update.running, found: available ?? "10.10.10"), accessory: true))
         view.onClick = { [weak self, weak view] in
             guard let self else { return }
-            if case .offer(_) = view?.state, let version = self.available {
-                self.asked = true
-                self.install(version)
-            } else {
-                self.play(.select)
-                self.checkForUpdate(asked: true)
-            }
+            // An update on offer goes through the check again, which installs
+            // it only where Koe can replace itself (else: koe.fm), as Wham's.
+            self.play(.select)
+            self.checkForUpdate(asked: true)
             view?.state = self.updateState
         }
         // Its sound comes as it says how the check went.
