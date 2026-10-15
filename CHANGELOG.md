@@ -5,6 +5,12 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.0.1 - 2026-10-15
+
+- Hold fn to talk, or tap it once to start and again to stop: both work, with no setting to choose.
+- The welcome now ends with a little celebration, once your first words land in the try-it box.
+- The first time, the welcome says when Koe is preparing its voice model for your Mac's Neural Engine, with a bar that moves, instead of a silent “Getting ready…”.
+
 ## 2.0.0 - 2026-10-15
 
 - A new Koe, rebuilt from scratch as a native Mac app: a little chat bubble in your menu bar. Hold fn, talk, let go, and your words are typed where your cursor is.
