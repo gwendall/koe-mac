@@ -5,6 +5,11 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.0.2 - 2026-10-15
+
+- The last words of a dictation are no longer cut off: Koe keeps listening a moment after you let go of fn.
+- Escape cancels a dictation without reaching the app behind it: in a terminal, Claude Code no longer stops its work too.
+
 ## 2.0.1 - 2026-10-15
 
 - Hold fn to talk, or tap it once to start and again to stop: both work, with no setting to choose.
