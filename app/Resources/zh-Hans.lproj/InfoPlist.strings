@@ -1,0 +1,3 @@
+/* Koe in Simplified Chinese: what macOS shows when Koe asks for the microphone. */
+
+"NSMicrophoneUsageDescription" = "Koe 只在你按住 fn 时聆听，并在这台 Mac 上把你的话变成文字。";

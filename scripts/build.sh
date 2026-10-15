@@ -12,7 +12,7 @@ APP=build/Koe.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp app/Info.plist "$APP/Contents/Info.plist"
-cp app/Resources/* "$APP/Contents/Resources/"
+cp -R app/Resources/* "$APP/Contents/Resources/"
 
 plist="$APP/Contents/Info.plist"
 if [ -n "${VERSION:-}" ]; then

@@ -24,6 +24,7 @@ enum SelfTest {
         hotkey()
         journal()
         fuzz()
+        languages()
         print("\(checks - failures)/\(checks) checks passed")
         return failures == 0 ? 0 : 1
     }

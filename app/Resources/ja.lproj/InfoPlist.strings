@@ -1,0 +1,3 @@
+/* Koe in Japanese: what macOS shows when Koe asks for the microphone. */
+
+"NSMicrophoneUsageDescription" = "Koeはfnを押している間だけ声を聞き、このMacの中で言葉を文字にします。";

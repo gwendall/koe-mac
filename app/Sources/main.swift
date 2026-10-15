@@ -57,9 +57,10 @@ if args.first == "--transcribe", args.count > 1 {
     exit(status)
 }
 
-// `Koe --render-toasts <dir>` draws every pill as a PNG, to look at them.
+// `Koe --render-toasts <dir>` draws every pill as a PNG, to look at them;
+// in English, or in the language `-AppleLanguages '(fr)'` asks for.
 if args.first == "--render-toasts", args.count > 1 {
-    Words.english = true
+    Words.english = !Words.languageAsked
     MainActor.assumeIsolated {
         _ = NSApplication.shared
         Shots.toasts(to: URL(fileURLWithPath: args[1]))

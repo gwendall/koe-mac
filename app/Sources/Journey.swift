@@ -7,7 +7,7 @@ import SwiftUI
 enum Journey {
     static func render(to directory: URL) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        Words.english = true
+        Words.english = !Words.languageAsked
 
         func state(_ change: (KoeState) -> Void = { _ in }) -> KoeState {
             let state = KoeState()
@@ -51,12 +51,12 @@ enum Journey {
             ("t1-hello", Toast.hello),
             ("t2-listening", Toast.listening),
             ("t3-typed", Toast.typed),
-            ("t4-copied-password", Toast.note("COPIED", "That's a password field. Paste it with ⌘V")),
-            ("t5-almost-ready", Toast.note("ALMOST READY", "Koe's voice model is at 42%")),
-            ("t6-no-sound", Toast.note("NO SOUND", "The microphone sent nothing. Check it in Settings")),
-            ("t7-cancelled", Toast.note("CANCELLED", "Nothing was typed")),
-            ("t8-recovered", Toast.note("RECOVERED", "Your last dictation is on the clipboard")),
-            ("t9-mic-off", Toast.note("MICROPHONE OFF", "Allow Koe in Privacy & Security")),
+            ("t4-copied-password", Toast.note(Words.say("COPIED"), Words.say("%@. Paste it with ⌘V", Words.say("That's a password field")))),
+            ("t5-almost-ready", Toast.note(Words.say("ALMOST READY"), Words.say("Koe's voice model is at %@", Words.percent(42)))),
+            ("t6-no-sound", Toast.note(Words.say("NO SOUND"), Words.say("The microphone sent nothing. Check it in Settings"))),
+            ("t7-cancelled", Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed"))),
+            ("t8-recovered", Toast.note(Words.say("RECOVERED"), Words.say("Your last dictation is on the clipboard"))),
+            ("t9-mic-off", Toast.note(Words.say("MICROPHONE OFF"), Words.say("Allow Koe in Privacy & Security"))),
         ]
         for (name, style) in notes {
             let toast = Toast()
@@ -64,7 +64,7 @@ enum Journey {
             if style.live { toast.setLevel(0.7) }
             if name == "t2-listening" {
                 snapshot(toast, to: directory.appendingPathComponent("\(name).png"))
-                toast.setCaption("No sound: check your microphone")
+                toast.setCaption(Words.say("No sound: check your microphone"))
                 snapshot(toast, to: directory.appendingPathComponent("t2b-listening-no-sound.png"))
             } else {
                 snapshot(toast, to: directory.appendingPathComponent("\(name).png"))
