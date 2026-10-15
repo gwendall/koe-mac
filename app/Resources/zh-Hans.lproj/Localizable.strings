@@ -156,3 +156,7 @@
 "Koe waits in your menu bar, ready wherever you type." = "Koe 在菜单栏待命，凡是能打字的地方都能用。";
 "Start Using Koe" = "开始使用 Koe";
 "You're all set" = "一切就绪";
+"Polish the words" = "润色文字";
+"A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second." = "这台 Mac 上的小型语言模型会去掉重复和改口，按你的词典拼写词语，并修正标点。1.3 GB，只需下载一次；大约多花十分之一秒。";
+"Downloading once (1.3 GB): %@. Koe types without it meanwhile." = "仅需下载一次（1.3 GB）：%@。在此期间，Koe 不经润色直接输入。";
+"On, on this Mac: your words are polished before they're typed." = "已开启，在这台 Mac 上：文字在输入前先经过润色。";

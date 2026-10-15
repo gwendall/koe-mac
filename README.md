@@ -17,6 +17,10 @@ no account, no cloud, nothing to choose.
 - **The menu** keeps your last five dictations: click one to copy it.
 - **Settings:** microphone, Return after typing, a dictionary of your words,
   sounds, open at login, automatic updates, a diagnostic report.
+- **Polish the words** (off by default): a small language model on the Mac
+  takes out repeats and corrections, spells your dictionary words and fixes
+  punctuation, in about 0.1 s; filler sounds (um, uh, euh…) always go. How it
+  was chosen: [evals/polish](evals/polish).
 - **Never loses a word:** every dictation is on disk until it is typed; after
   a crash Koe puts it on the clipboard at the next launch.
 
@@ -79,4 +83,7 @@ by moondream, a post-training of NVIDIA
 [parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3),
 converted to Core ML by [FluidInference](https://huggingface.co/FluidInference/parakeet-ultra-coreml),
 under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Runtime:
-FluidAudio (Apache-2.0). Pixel font: Silkscreen by Jason Kottke (SIL OFL 1.1).
+FluidAudio (Apache-2.0). Polishing, when switched on: [Qwen3.5 2B](https://huggingface.co/Qwen/Qwen3.5-2B)
+(Apache-2.0, the Q4_K_M quantization by [Unsloth](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF),
+downloaded on the Mac that asks for it) through [llama.cpp](https://github.com/ggml-org/llama.cpp)
+(MIT, shipped in the app with its license). Pixel font: Silkscreen by Jason Kottke (SIL OFL 1.1).

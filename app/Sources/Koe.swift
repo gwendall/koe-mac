@@ -17,6 +17,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let hotkey = Hotkey()
     private let recorder = Recorder()
     private var transcriber = Transcriber()
+    private let polisher = Polisher()
     let state = KoeState()
 
     private enum Phase { case idle, listening, transcribing, typing }
@@ -96,6 +97,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         watchPermissions()
         guardTrust()
         prepareModel()
+        preparePolish()
         scheduleUpdates()
 
         if !UserDefaults.standard.bool(forKey: "welcomed") {
@@ -111,6 +113,17 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // Never quit in the middle of a dictation; at shutdown the journal keeps it.
+    // llama.cpp's Metal backend asserts when torn down at exit with a model
+    // loaded: unload it first (Polish.swift), or each quit leaves a crash report.
+    func applicationWillTerminate(_ notification: Notification) {
+        let done = DispatchSemaphore(value: 0), polisher = self.polisher
+        Task.detached {
+            await polisher.unload()
+            done.signal()
+        }
+        _ = done.wait(timeout: .now() + 2)
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard phase != .idle, !poweringOff else { return .terminateNow }
         play(.refused)
@@ -143,6 +156,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.startCapture = { [weak self] in self?.captureShortcut() }
         state.cancelCapture = { [weak self] in self?.hotkey.cancelCapture() }
         state.retryModel = { [weak self] in self?.prepareModel() }
+        state.polishChanged = { [weak self] in self?.preparePolish() }
         state.setLogin = { [weak self] on in self?.setLogin(on) }
         state.copyReport = { [weak self] in self?.copyReport() }
         state.finishWelcome = { UserDefaults.standard.set(true, forKey: "welcomed") }
@@ -387,7 +401,59 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.note("transcribed", ["audio": String(format: "%.1f", seconds), "ms": Int(Date().timeIntervalSince(started) * 1000),
                                  "words": text.map { $0.split(separator: " ").count } ?? -1])
         guard let text, !text.isEmpty else { return text == nil ? nil : "" }
-        return Vocabulary.correct(text)
+        return await polished(Vocabulary.correct(Fillers.strip(text)))
+    }
+
+    // MARK: - Polishing
+
+    // The words through the polishing model when it is on and ready, within
+    // 1.5 s; else as they are. The dictionary has the last word.
+    private func polished(_ text: String) async -> String {
+        guard state.polish, state.polishReady else { return text }
+        let started = Date(), words = Vocabulary.words, polisher = self.polisher
+        let answer = await Deadline.race(1.5) { await polisher.polish(text, words: words) }
+        Log.note("polished", ["ms": Int(Date().timeIntervalSince(started) * 1000), "kept": answer != nil])
+        return answer.map { Vocabulary.correct($0) } ?? text
+    }
+
+    // Switched on: the model comes down (1.3 GB, in the background, Koe typing
+    // without it meanwhile) and loads. Switched off: out of memory.
+    private func preparePolish() {
+        guard state.polish else {
+            state.polishReady = false
+            Task { await polisher.unload() }
+            return
+        }
+        state.polishFailed = false
+        if PolishModel.installed { return loadPolish() }
+        guard state.polishShare == nil else { return } // already coming
+        state.polishShare = 0
+        Task { [weak self] in
+            do {
+                try await PolishModel.download { share in self?.state.polishShare = share }
+                self?.state.polishShare = nil
+                if self?.state.polish == true { self?.loadPolish() }
+            } catch {
+                self?.state.polishShare = nil
+                self?.state.polishFailed = true
+                Log.note("polish", ["download": "failed"])
+            }
+        }
+    }
+
+    private func loadPolish() {
+        Task { [weak self] in
+            guard let self else { return }
+            let started = Date()
+            do {
+                try await polisher.load(PolishModel.file)
+                state.polishReady = state.polish
+                Log.note("polish", ["loaded_ms": Int(Date().timeIntervalSince(started) * 1000)])
+            } catch {
+                state.polishFailed = true
+                Log.note("polish", ["load": "failed"])
+            }
+        }
     }
 
     private func deliver(_ text: String, from origin: Target.Origin, journal: Journal) async {

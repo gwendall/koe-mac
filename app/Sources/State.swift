@@ -15,6 +15,11 @@ final class KoeState: ObservableObject {
     // Core ML fitting the model to this Mac's Neural Engine: the first load only, and slow.
     @Published var modelPreparing = false
     @Published var modelFailed = false
+    // Polishing (Polish.swift): asked for, and its model's download and load.
+    @Published var polish = UserDefaults.standard.bool(forKey: "polish")
+    @Published var polishShare: Double?
+    @Published var polishReady = false
+    @Published var polishFailed = false
     // The shortcut, and recording a new one.
     @Published var shortcut = Shortcut.saved
     @Published var capturing = false
@@ -38,6 +43,7 @@ final class KoeState: ObservableObject {
     var startCapture: () -> Void = {}
     var cancelCapture: () -> Void = {}
     var retryModel: () -> Void = {}
+    var polishChanged: () -> Void = {}
     var setLogin: (Bool) -> Void = { _ in }
     var copyReport: () -> Void = {}
     var finishWelcome: () -> Void = {}
@@ -57,6 +63,7 @@ final class KoeState: ObservableObject {
     func save() {
         let defaults = UserDefaults.standard
         defaults.set(submits, forKey: "submits")
+        defaults.set(polish, forKey: "polish")
         defaults.set(!keepsRecent, forKey: "forgetRecent")
         defaults.set(muted, forKey: "muted")
         Update.isOn = updates

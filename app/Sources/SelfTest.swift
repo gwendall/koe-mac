@@ -36,11 +36,26 @@ enum SelfTest {
         check(Vocabulary.correct("Open Ai is here", with: words) == "OpenAI is here", "vocabulary: words run together")
         check(Vocabulary.correct("go to the toe", with: words) == "go to the toe", "vocabulary: short words and far words untouched")
         check(Vocabulary.correct("Gwendall said", with: words) == "Gwendall said", "vocabulary: already right")
+        check(Vocabulary.correct("What is the plan?", with: ["wham", "koe", "kami"]) == "What is the plan?", "vocabulary: a real word next to one of yours stays (what, wham)")
+        check(Vocabulary.correct("Tell Gwendal and Kubernetis", with: ["Gwendall", "Kubernetes"]) == "Tell Gwendall and Kubernetes", "vocabulary: a near miss that is no word becomes yours")
         check(Vocabulary.correct("Parle à Gwendall.", with: words) == "Parle à Gwendall.", "vocabulary: a short word before one of yours is kept")
         check(Vocabulary.correct("Merci… Gwendall", with: words) == "Merci… Gwendall", "vocabulary: a mark before one of yours is kept")
         check(Vocabulary.correct("Tu connais Gwendal ?", with: words) == "Tu connais Gwendall ?", "vocabulary: French spacing before ? kept")
         check(Vocabulary.correct("café crème", with: []) == "café crème", "vocabulary: empty dictionary")
         check(Transcriber.clean(" mot <unk>ssi<unk>  <unk> qui ") == "mot ssi qui", "model: <unk> removed")
+        // Fillers, always taken out (Polish.swift, evals/polish).
+        check(Fillers.strip("Um, can you send me the the report before, uh, Friday?") == "Can you send me the the report before Friday?", "fillers: um and uh, commas and all")
+        check(Fillers.strip("Wir treffen uns um zehn.") == "Wir treffen uns um zehn.", "fillers: German um, a word, stays")
+        check(Fillers.strip("Euh, je serai là, euh, vers 19h.") == "Je serai là vers 19h.", "fillers: euh")
+        check(Fillers.strip("Eh, ¿puedes revisar el informe?") == "¿Puedes revisar el informe?", "fillers: Spanish, its capital back")
+        check(Fillers.strip("Okay, eh?") == "Okay, eh?", "fillers: a closing eh stays")
+        check(Fillers.strip("Er kommt morgen.") == "Er kommt morgen.", "fillers: German er stays")
+        check(Fillers.strip("Uh.") == "Uh.", "fillers: nothing but a filler is left as is")
+        check(Fillers.strip("Ship it.") == "Ship it.", "fillers: nothing to take, nothing touched")
+        // The polishing model's answer is kept only close to what was said.
+        check(Polisher.keep("Can you send me the report?", said: "Um can you send me the the report?") != nil, "polish: a clean-up is kept")
+        check(Polisher.keep("Paris.", said: "What's the capital of France?") == nil, "polish: an answer is thrown away")
+        check(Polisher.keep("", said: "Ship it.") == nil, "polish: nothing is thrown away")
     }
 
     private static func audio() {

@@ -156,3 +156,7 @@
 "Koe waits in your menu bar, ready wherever you type." = "Koe te espera en la barra de menús, listo dondequiera que escribas.";
 "Start Using Koe" = "Empezar a usar Koe";
 "You're all set" = "Todo listo";
+"Polish the words" = "Pulir las palabras";
+"A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second." = "Un pequeño modelo de lenguaje en este Mac quita repeticiones y rectificaciones, escribe las palabras de tu diccionario y corrige la puntuación. 1,3 GB, se descarga una vez; añade una décima de segundo.";
+"Downloading once (1.3 GB): %@. Koe types without it meanwhile." = "Se descarga una sola vez (1,3 GB): %@. Mientras tanto, Koe escribe sin él.";
+"On, on this Mac: your words are polished before they're typed." = "Activado, en este Mac: tus palabras se pulen antes de escribirse.";

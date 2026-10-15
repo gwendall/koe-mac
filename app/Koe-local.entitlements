@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Local builds only (scripts/build.sh, "Koe Local Development"): a self-signed
+     certificate has no team, so the hardened runtime would refuse llama.framework
+     signed with it. Releases are signed with Developer ID, app and framework by
+     the same team, and use Koe.entitlements. -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>

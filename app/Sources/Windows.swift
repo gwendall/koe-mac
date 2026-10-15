@@ -558,6 +558,16 @@ struct SettingsView: View {
                 Text(Words.say("Sends the message in chats and terminals. Koe never presses Return if the words did not arrive."))
                     .font(Brand.body(11)).foregroundStyle(.secondary)
                 Toggle(Words.say("Keep my last dictations in the menu"), isOn: $state.keepsRecent)
+                Toggle(Words.say("Polish the words"), isOn: $state.polish)
+                Text(polishDetail).font(Brand.body(11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                if state.polish, let share = state.polishShare {
+                    CandyBar(share: share)
+                } else if state.polish, !state.polishReady, !state.polishFailed {
+                    CandyBar(share: nil)
+                }
+                if state.polish, state.polishFailed {
+                    Button(Words.say("Try Again")) { state.polishChanged() }
+                }
             }
 
             Section(Words.say("Dictionary")) {
@@ -612,11 +622,27 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .tint(Color(cg: Pixels.candy[0]))
         .onChange(of: state.submits) { state.save() }
+        .onChange(of: state.polish) {
+            state.save()
+            state.polishChanged()
+        }
         .onChange(of: state.keepsRecent) { state.save() }
         .onChange(of: state.muted) { state.save() }
         .onChange(of: state.updates) { state.save() }
         .onChange(of: state.input) { state.save() }
         .onChange(of: state.words) { state.save() }
+    }
+
+    private var polishDetail: String {
+        guard state.polish else {
+            return Words.say("A small language model on this Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation. 1.3 GB, downloaded once; it adds about a tenth of a second.")
+        }
+        if state.polishFailed { return Words.say("The download stopped. Check your connection.") }
+        if let share = state.polishShare {
+            return Words.say("Downloading once (1.3 GB): %@. Koe types without it meanwhile.", Words.percent(Int(share * 100)))
+        }
+        if state.polishReady { return Words.say("On, on this Mac: your words are polished before they're typed.") }
+        return Words.say("Getting ready…")
     }
 
     private func add() {

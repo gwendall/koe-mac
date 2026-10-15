@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 // Your words: names, brands, jargon that the model spells its own way.
 // After each dictation, a word one letter away from one of yours (accents
@@ -56,6 +56,9 @@ enum Vocabulary {
     private static func fuzzy(_ word: String, _ words: [String], _ normalized: [String]) -> String? {
         let input = plain(word)
         guard input.count > 3 else { return nil }
+        // A word of the language is what was said, not a near miss: with
+        // "wham" in the dictionary, "what" stays "what".
+        if isWord(word) { return nil }
         var best: (String, Int)?
         for (index, candidate) in normalized.enumerated() {
             if candidate == input { return nil } // already right
@@ -64,6 +67,24 @@ enum Vocabulary {
             if d <= 1, best == nil || d < best!.1 { best = (words[index], d) }
         }
         return best?.0
+    }
+
+    // Whether macOS's spell checker knows the word in any language Koe hears.
+    private static var known: [String: Bool] = [:]
+    private static let languages: [String] = {
+        let available = Set(NSSpellChecker.shared.availableLanguages)
+        return ["en", "fr", "de", "es", "it", "pt", "nl"].filter { available.contains($0) }
+    }()
+
+    static func isWord(_ word: String) -> Bool {
+        let key = word.lowercased()
+        if let answer = known[key] { return answer }
+        let answer = languages.contains { language in
+            NSSpellChecker.shared.checkSpelling(of: key, startingAt: 0, language: language, wrap: false,
+                                                inSpellDocumentWithTag: 0, wordCount: nil).location == NSNotFound
+        }
+        known[key] = answer
+        return answer
     }
 
     // Lowercased, Latin accents removed.

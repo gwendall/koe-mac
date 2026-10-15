@@ -103,7 +103,7 @@ enum Model {
 }
 
 // One download with its progress, to a temporary file.
-private final class Fetch: NSObject, URLSessionDownloadDelegate {
+final class Fetch: NSObject, URLSessionDownloadDelegate {
     private let onProgress: (Int64) -> Void
     private var continuation: CheckedContinuation<URL, Error>?
 

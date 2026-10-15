@@ -39,6 +39,9 @@ enum Journey {
             ("15-settings-modifier", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.shortcut = Shortcut(kind: .modifier, keyCode: 61) })), NSSize(width: 480, height: 640)),
             ("16-settings-missing-permissions", AnyView(SettingsView(state: state { $0.microphone = false; $0.accessibility = false })), NSSize(width: 480, height: 640)),
             ("18-settings-how-koe-works", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
+            ("19-settings-polish-off", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
+            ("20-settings-polish-downloading", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.polish = true; $0.polishShare = 0.37 }, height: 1500)), NSSize(width: 480, height: 1500)),
+            ("21-settings-polish-ready", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.polish = true; $0.polishReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
             ("17-settings-dictionary", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.words = ["Gwendall", "Koe", "FluidAudio"]; $0.submits = true })), NSSize(width: 480, height: 640)),
         ]
         for (name, view, size) in screens {

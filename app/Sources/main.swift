@@ -57,6 +57,31 @@ if args.first == "--transcribe", args.count > 1 {
     exit(status)
 }
 
+// `Koe --polish <text>…` prints each text after the fillers and the polishing
+// model (installed, or $KOE_POLISH_MODEL), with its time; $KOE_WORDS is the
+// dictionary, comma-separated.
+if args.first == "--polish", args.count > 1 {
+    let done = DispatchSemaphore(value: 0)
+    Task.detached {
+        let file = ProcessInfo.processInfo.environment["KOE_POLISH_MODEL"].map { URL(fileURLWithPath: $0) } ?? PolishModel.file
+        let words = (ProcessInfo.processInfo.environment["KOE_WORDS"] ?? "").split(separator: ",").map(String.init)
+        let polisher = Polisher()
+        let loading = Date()
+        do { try await polisher.load(file) } catch { print("error: \(error.localizedDescription)"); exit(1) }
+        print(String(format: "loaded in %.0f ms", Date().timeIntervalSince(loading) * 1000))
+        for text in args.dropFirst() {
+            let stripped = Fillers.strip(text)
+            let start = Date()
+            let polished = await polisher.polish(stripped, words: words)
+            print(String(format: "%.0f ms | %@ -> %@", Date().timeIntervalSince(start) * 1000, text, polished ?? "(kept) " + stripped))
+        }
+        await polisher.unload()
+        done.signal()
+    }
+    done.wait()
+    exit(0)
+}
+
 // `Koe --render-toasts <dir>` draws every pill as a PNG, to look at them;
 // in English, or in the language `-AppleLanguages '(fr)'` asks for.
 if args.first == "--render-toasts", args.count > 1 {
