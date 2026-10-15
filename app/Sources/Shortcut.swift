@@ -98,12 +98,25 @@ struct Shortcut: Codable, Equatable {
         set { UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "shortcut") }
     }
 
-    // Other dictation apps open now, which may listen to fn too: both would
-    // start at once. Said before Koe's first words, never decided for you.
+    // Other apps that hear the modifier keys as they go down, as Koe does to
+    // hear fn: they may use fn too, and start along with Koe. Read from the
+    // system's own list of keyboard taps, whoever made the app, rather than
+    // guessed from names; macOS's own taps (Siri…) are left out. Said, never
+    // decided for you.
     static var rivals: [String] {
-        let known = ["Wispr Flow", "Superwhisper", "MacWhisper", "VoiceInk", "Aqua Voice", "Willow", "Monologue", "Spokenly"]
-        let names = NSWorkspace.shared.runningApplications.compactMap(\.localizedName)
-        return known.filter { name in names.contains { $0.localizedCaseInsensitiveCompare(name) == .orderedSame } }
+        var count: UInt32 = 0
+        guard CGGetEventTapList(0, nil, &count) == .success, count > 0 else { return [] }
+        var taps = [CGEventTapInformation](repeating: CGEventTapInformation(), count: Int(count))
+        guard CGGetEventTapList(count, &taps, &count) == .success else { return [] }
+        let modifiers = UInt64(1) << CGEventType.flagsChanged.rawValue
+        var names: [String] = []
+        for tap in taps.prefix(Int(count)) where tap.enabled && tap.eventsOfInterest & modifiers != 0 && pid_t(tap.tappingProcess) != getpid() {
+            guard let app = NSRunningApplication(processIdentifier: pid_t(tap.tappingProcess)),
+                  let id = app.bundleIdentifier, !id.hasPrefix("com.apple."),
+                  let name = app.localizedName, !names.contains(name) else { continue }
+            names.append(name)
+        }
+        return names
     }
 
     // What macOS does with 🌐 itself (Keyboard settings, "Press 🌐 key to"),
