@@ -5,6 +5,10 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.1.1 - 2026-10-15
+
+- Polishing is easier to find and to follow: How Koe works, in Settings, says what it is and names the model; Koe tells you when it's ready after its download; and if the model can't start, Settings says so rather than blaming the connection.
+
 ## 2.1.0 - 2026-10-15
 
 - New, off by default: Polish the words. A small language model on your Mac takes out repeats and corrections, spells your dictionary words and fixes punctuation, in about a tenth of a second. Turn it on in Settings: it downloads once (1.3 GB) in the background while Koe keeps typing.
