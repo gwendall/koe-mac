@@ -105,11 +105,18 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkPermissions() }
         }
+        // An app opening or quitting may take fn or give it back; its keyboard tap comes a moment after it opens.
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { MainActor.assumeIsolated { self?.lookForRivals() } }
+            }
+        }
         NotificationCenter.default.addObserver(forName: .koeShowSettings, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.openSettings() }
         }
 
         checkPermissions()
+        lookForRivals()
         watchPermissions()
         guardTrust()
         prepareModel()
@@ -231,6 +238,15 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.finishWelcome = { UserDefaults.standard.set(true, forKey: "welcomed") }
         state.celebrate = { [weak self] in self?.play(.hooray) }
         state.cheer = { [weak self] in self?.play(.check(true)) }
+        state.keepFn = { [weak self] in
+            guard let self else { return }
+            Shortcut.sharing += self.state.unsettled
+            self.lookForRivals()
+        }
+        state.useRightOption = { [weak self] in
+            self?.use(.rightOption)
+            self?.play(.check(true))
+        }
         // A new place for the pill: shown there a moment.
         state.showPill = { [weak self] in
             guard let self, self.phase == .idle else { return }
@@ -312,12 +328,31 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.play(.refused)
                 return
             }
-            Shortcut.saved = shortcut
-            self.hotkey.shortcut = shortcut
-            self.state.shortcut = shortcut
+            self.use(shortcut)
             self.play(.check(true))
-            Log.note("shortcut", ["kind": shortcut.kind.rawValue])
         }
+    }
+
+    private func use(_ shortcut: Shortcut) {
+        Shortcut.saved = shortcut
+        hotkey.shortcut = shortcut
+        state.shortcut = shortcut
+        Log.note("shortcut", ["kind": shortcut.kind.rawValue])
+        lookForRivals()
+    }
+
+    // Other apps that may start on fn too (Shortcut.rivals): asked about once
+    // in the welcome's Try it; a new one later is said in a pill, once.
+    private func lookForRivals() {
+        let rivals = Shortcut.rivals
+        let unsettled = state.shortcut.kind == .fn ? rivals.filter { !Shortcut.sharing.contains($0) } : []
+        if rivals != state.rivals { Log.note("fn-rivals", ["apps": rivals.joined(separator: ", ")]) }
+        state.rivals = rivals
+        state.unsettled = unsettled
+        let told = UserDefaults.standard.stringArray(forKey: "fnToldAbout") ?? []
+        guard UserDefaults.standard.bool(forKey: "welcomed"), let new = unsettled.first(where: { !told.contains($0) }) else { return }
+        UserDefaults.standard.set(told + [new], forKey: "fnToldAbout")
+        pop(Toast.note(Words.say("FN IS SHARED"), Words.say("%@ may start on fn too: see Settings", new)))
     }
 
     // MARK: - A dictation

@@ -5,6 +5,12 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.1 - 2026-10-15
+
+- Koe asks before taking fn. If another app may start on fn too (Wispr Flow, Superwhisper, or any app listening to the keyboard), Try it asks you: keep fn for Koe, or use Right ⌥. An app that shows up later is pointed out once, and Settings offers the same switch.
+- In Try it, if your shortcut never reaches Koe, Koe says another app may be taking it first, and how to pick another key.
+- Update to Koe in the menu checks again before installing: on a copy that can't update itself, it sends you to koe.fm instead of failing.
+
 ## 2.2.0 - 2026-10-15
 
 - A new menu, shared with Wham: Return after typing, Polish and Sounds tick on and off right in it, and the menu stays open; Check for Updates answers in place; About Koe shows your version. It's narrower, with your last dictations on one line each and how long ago on the right.

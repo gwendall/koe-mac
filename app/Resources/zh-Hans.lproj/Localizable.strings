@@ -177,7 +177,6 @@
 "Recent" = "最近";
 "now" = "刚刚";
 "%@ is open and may use fn too: both would start at once." = "%@ 已打开，可能也在用 fn：两者会同时启动。";
-"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ 可能也在用 fn，会和 Koe 一起启动。请退出它，或在下方“更改快捷键”中给 Koe 换一个键。";
 "Bottom" = "底部";
 "Top" = "顶部";
 "Left" = "左侧";
@@ -191,3 +190,10 @@
 "Move Koe to Applications?" = "将 Koe 移到“应用程序”文件夹？";
 "Move to Applications" = "移到“应用程序”";
 "Not Now" = "以后";
+"%@ also uses fn" = "%@ 也在用 fn";
+"%@ may start on fn too: see Settings" = "%@ 也可能用 fn 启动：请看设置";
+"Both would start at once. Keep fn for Koe, or give Koe another key." = "两者会同时启动。把 fn 留给 Koe，或给 Koe 换一个键。";
+"FN IS SHARED" = "FN 被共用";
+"Keep fn" = "保留 fn";
+"Nothing when you press %@? Another app may take it first: give Koe another key below." = "按 %@ 没反应？可能被另一个应用先拿走了：在下方给 Koe 换一个键。";
+"Use %@" = "使用 %@";

@@ -28,6 +28,7 @@ enum Journey {
             ("05-permissions-all-on-waking", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true }, step: 1)), NSSize(width: 460, height: 560)),
             ("06-permissions-ready", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, step: 1)), NSSize(width: 460, height: 560)),
             ("07-permissions-download-failed", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelFailed = true }, step: 1)), NSSize(width: 460, height: 560)),
+            ("08b-try-shared-fn", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.unsettled = ["Wispr Flow"]; $0.rivals = ["Wispr Flow"] }, step: 2)), NSSize(width: 460, height: 560)),
             ("08-try-empty", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, step: 2)), NSSize(width: 460, height: 560)),
             ("09-try-listening", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.listening = true }, step: 2)), NSSize(width: 460, height: 560)),
             ("10-try-typed", AnyView(Welcome(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, step: 2, practice: "Bonjour Koe, ça marche vraiment bien. ")), NSSize(width: 460, height: 560)),

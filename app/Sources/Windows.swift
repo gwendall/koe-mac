@@ -216,6 +216,9 @@ struct Welcome: View {
     @State private var practice: String
     @FocusState private var practiceFocused: Bool
     @State private var cheered = false
+    // Whether the shortcut ever reached Koe on Try it, and if ten seconds went by without.
+    @State private var heard = false
+    @State private var silent = false
 
     init(state: KoeState, step: Int = 0, practice: String = "") {
         self.state = state
@@ -341,13 +344,8 @@ struct Welcome: View {
                 Text(state.shortcut.forcesToggle ? Words.say("say hello, press it again.") : Words.say("and say hello, then let go."))
             }
             .font(Brand.body(14))
-            if state.shortcut.kind == .fn, let rival = Shortcut.rivals.first {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color(cg: Pixels.candy[0]))
-                    Text(Words.say("%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below.", rival))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .font(Brand.body(12))
+            if let rival = state.unsettled.first {
+                SharedFn(rival: rival, keep: state.keepFn, switchKey: state.useRightOption)
             }
             TextEditor(text: $practice)
                 .font(Brand.body(15))
@@ -360,6 +358,10 @@ struct Welcome: View {
                                                                    lineWidth: state.listening || !practice.isEmpty ? 2 : 1))
             if !state.modelReady {
                 Text(Words.say("The voice model is still getting ready…")).font(Brand.body(12)).foregroundStyle(.secondary)
+            } else if practice.isEmpty && !state.listening && silent {
+                // Ten seconds and the shortcut never reached Koe: something else may take it first.
+                Text(Words.say("Nothing when you press %@? Another app may take it first: give Koe another key below.", state.shortcut.label))
+                    .font(Brand.body(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             } else if practice.isEmpty {
                 Text(state.listening ? Words.say("Listening…") : Words.say("Your words will appear here."))
                     .font(Brand.body(12)).foregroundStyle(.secondary)
@@ -398,12 +400,19 @@ struct Welcome: View {
             NSApp.activate(ignoringOtherApps: true)
             Windows.welcomeWindow?.makeKeyAndOrderFront(nil)
             practiceFocused = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { if !heard { silent = true } }
             state.tryIt = { text in
                 practice += (practice.isEmpty || practice.hasSuffix(" ") ? "" : " ") + text + " "
                 practiceFocused = true
             }
         }
         .onDisappear { state.tryIt = nil }
+        .onChange(of: state.listening) { _, listening in
+            if listening {
+                heard = true
+                silent = false
+            }
+        }
         // The first words in the box: a check, right here, to read them by.
         // The finale waits for Continue.
         .onChange(of: practice.isEmpty) { _, empty in
@@ -582,9 +591,13 @@ struct SettingsView: View {
                     Text(Words.say("A modifier on its own starts and stops Koe when you release it."))
                         .font(Brand.body(11)).foregroundStyle(.secondary)
                 }
-                if state.shortcut.kind == .fn, let rival = Shortcut.rivals.first {
-                    Text(Words.say("%@ is open and may use fn too: both would start at once.", rival))
-                        .font(Brand.body(11)).foregroundStyle(.secondary)
+                if state.shortcut.kind == .fn, let rival = state.rivals.first {
+                    HStack {
+                        Text(Words.say("%@ is open and may use fn too: both would start at once.", rival))
+                            .font(Brand.body(11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Button(Words.say("Use %@", Shortcut.rightOption.label)) { state.useRightOption() }
+                    }
                 }
                 if state.shortcut.kind == .fn, let use = Shortcut.globeUse {
                     Text(Words.say("On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening.", use))
@@ -742,5 +755,32 @@ enum Facts {
     private static func icon(_ rows: [String]) -> NSImage {
         let image = Pixels.image(rows, color: Pixels.candy[0])
         return image.map { NSImage(cgImage: $0, size: NSSize(width: 9, height: 9)) } ?? NSImage()
+    }
+}
+
+// fn is shared: another app may start on it too. Koe asks once, both
+// answers side by side.
+struct SharedFn: View {
+    let rival: String
+    let keep: () -> Void
+    let switchKey: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color(cg: Pixels.candy[0]))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Words.say("%@ also uses fn", rival)).font(Brand.body(13, weight: .semibold))
+                    Text(Words.say("Both would start at once. Keep fn for Koe, or give Koe another key."))
+                        .font(Brand.body(12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            HStack(spacing: 8) {
+                Spacer()
+                PillButton(title: Words.say("Keep fn"), prominent: false, action: keep)
+                PillButton(title: Words.say("Use %@", Shortcut.rightOption.label), prominent: false, action: switchKey)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
     }
 }

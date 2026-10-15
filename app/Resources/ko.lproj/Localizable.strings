@@ -177,7 +177,6 @@
 "Recent" = "최근";
 "now" = "방금";
 "%@ is open and may use fn too: both would start at once." = "%@이(가) 열려 있고 fn을 사용할 수 있어요. 둘이 동시에 시작돼요.";
-"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@도 fn을 사용해 Koe와 함께 시작될 수 있어요. 종료하거나, 아래 단축키 변경에서 Koe에 다른 키를 지정하세요.";
 "Bottom" = "아래";
 "Top" = "위";
 "Left" = "왼쪽";
@@ -191,3 +190,10 @@
 "Move Koe to Applications?" = "Koe을 응용 프로그램 폴더로 이동하시겠습니까?";
 "Move to Applications" = "응용 프로그램 폴더로 이동";
 "Not Now" = "지금 안 함";
+"%@ also uses fn" = "%@도 fn을 사용해요";
+"%@ may start on fn too: see Settings" = "%@도 fn으로 시작될 수 있어요. 설정을 확인하세요";
+"Both would start at once. Keep fn for Koe, or give Koe another key." = "둘이 동시에 시작돼요. fn을 Koe에 두거나, 다른 키를 지정하세요.";
+"FN IS SHARED" = "FN 공유 중";
+"Keep fn" = "fn 유지";
+"Nothing when you press %@? Another app may take it first: give Koe another key below." = "%@를 눌러도 반응이 없나요? 다른 앱이 먼저 가져갈 수 있어요. 아래에서 Koe에 다른 키를 지정하세요.";
+"Use %@" = "%@ 사용";

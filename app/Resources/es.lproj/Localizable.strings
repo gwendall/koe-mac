@@ -177,7 +177,6 @@
 "Recent" = "Recientes";
 "now" = "ahora";
 "%@ is open and may use fn too: both would start at once." = "%@ está abierto y quizá también usa fn: los dos empezarían a la vez.";
-"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ quizá también usa fn y empezaría junto con Koe. Ciérralo, o dale otra tecla a Koe con Cambiar el atajo, más abajo.";
 "Bottom" = "Abajo";
 "Top" = "Arriba";
 "Left" = "Izquierda";
@@ -191,3 +190,10 @@
 "Move Koe to Applications?" = "¿Mover Koe a Aplicaciones?";
 "Move to Applications" = "Mover a Aplicaciones";
 "Not Now" = "Ahora no";
+"%@ also uses fn" = "%@ también usa fn";
+"%@ may start on fn too: see Settings" = "%@ también puede empezar con fn: mira Ajustes";
+"Both would start at once. Keep fn for Koe, or give Koe another key." = "Los dos empezarían a la vez. Deja fn para Koe, o dale otra tecla.";
+"FN IS SHARED" = "FN ESTÁ COMPARTIDO";
+"Keep fn" = "Dejar fn";
+"Nothing when you press %@? Another app may take it first: give Koe another key below." = "¿Nada al pulsar %@? Quizá otra app la toma antes: dale otra tecla a Koe más abajo.";
+"Use %@" = "Usar %@";

@@ -31,6 +31,9 @@ final class KoeState: ObservableObject {
     @Published var keepsRecent = !UserDefaults.standard.bool(forKey: "forgetRecent")
     @Published var muted = UserDefaults.standard.bool(forKey: "muted")
     @Published var place = Indicator.Place.saved
+    // Other apps that may start on fn too, and those not yet asked about.
+    @Published var rivals: [String] = []
+    @Published var unsettled: [String] = []
     @Published var login = false
     @Published var updates = Update.isOn
     @Published var inputs: [Devices.Input] = []
@@ -53,6 +56,8 @@ final class KoeState: ObservableObject {
     var celebrate: () -> Void = {}
     var cheer: () -> Void = {}
     var showPill: () -> Void = {}
+    var keepFn: () -> Void = {}
+    var useRightOption: () -> Void = {}
     // Set while the welcome's try-it box is on screen: the words go there.
     var tryIt: ((String) -> Void)?
 

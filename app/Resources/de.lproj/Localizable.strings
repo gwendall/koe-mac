@@ -177,7 +177,6 @@
 "Recent" = "Zuletzt";
 "now" = "jetzt";
 "%@ is open and may use fn too: both would start at once." = "%@ ist geöffnet und nutzt vielleicht auch fn: Beide würden gleichzeitig starten.";
-"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ nutzt vielleicht auch fn und würde mit Koe starten. Beende es, oder gib Koe unten mit „Kurzbefehl ändern“ eine andere Taste.";
 "Bottom" = "Unten";
 "Top" = "Oben";
 "Left" = "Links";
@@ -191,3 +190,10 @@
 "Move Koe to Applications?" = "Koe in den Ordner „Programme“ bewegen?";
 "Move to Applications" = "In „Programme“ bewegen";
 "Not Now" = "Nicht jetzt";
+"%@ also uses fn" = "%@ nutzt auch fn";
+"%@ may start on fn too: see Settings" = "%@ startet vielleicht auch mit fn: siehe Einstellungen";
+"Both would start at once. Keep fn for Koe, or give Koe another key." = "Beide würden gleichzeitig starten. Behalte fn für Koe, oder gib Koe eine andere Taste.";
+"FN IS SHARED" = "FN WIRD GETEILT";
+"Keep fn" = "fn behalten";
+"Nothing when you press %@? Another app may take it first: give Koe another key below." = "Nichts, wenn du %@ drückst? Vielleicht fängt eine andere App die Taste ab: Gib Koe unten eine andere Taste.";
+"Use %@" = "%@ verwenden";

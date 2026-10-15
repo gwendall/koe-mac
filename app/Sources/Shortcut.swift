@@ -15,6 +15,9 @@ struct Shortcut: Codable, Equatable {
     var modifiers: UInt = 0
 
     static let fn = Shortcut(kind: .fn)
+    // What Koe offers when fn is shared: useless on its own on a Mac, and
+    // other dictation apps' default too.
+    static let rightOption = Shortcut(kind: .modifier, keyCode: 61)
 
     // A modifier on its own fires on release, so it can only start and stop.
     var forcesToggle: Bool { kind == .modifier }
@@ -98,25 +101,44 @@ struct Shortcut: Codable, Equatable {
         set { UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "shortcut") }
     }
 
-    // Other apps that hear the modifier keys as they go down, as Koe does to
-    // hear fn: they may use fn too, and start along with Koe. Read from the
-    // system's own list of keyboard taps, whoever made the app, rather than
-    // guessed from names; macOS's own taps (Siri…) are left out. Said, never
-    // decided for you.
+    // Other apps that may start on fn along with Koe: those that tap the
+    // modifier keys as they go down (read from the system's own list of
+    // keyboard taps, whoever made them; macOS's own are left out, by where
+    // they live), and dictation apps known to use fn, open now. Said, and
+    // asked about once, never decided for you.
     static var rivals: [String] {
-        var count: UInt32 = 0
-        guard CGGetEventTapList(0, nil, &count) == .success, count > 0 else { return [] }
-        var taps = [CGEventTapInformation](repeating: CGEventTapInformation(), count: Int(count))
-        guard CGGetEventTapList(count, &taps, &count) == .success else { return [] }
-        let modifiers = UInt64(1) << CGEventType.flagsChanged.rawValue
         var names: [String] = []
-        for tap in taps.prefix(Int(count)) where tap.enabled && tap.eventsOfInterest & modifiers != 0 && pid_t(tap.tappingProcess) != getpid() {
-            guard let app = NSRunningApplication(processIdentifier: pid_t(tap.tappingProcess)),
-                  let id = app.bundleIdentifier, !id.hasPrefix("com.apple."),
-                  let name = app.localizedName, !names.contains(name) else { continue }
+        func add(_ app: NSRunningApplication) {
+            guard app.processIdentifier != getpid(), !isApple(app), let name = app.localizedName, !names.contains(name) else { return }
             names.append(name)
         }
+        var count: UInt32 = 0
+        if CGGetEventTapList(0, nil, &count) == .success, count > 0 {
+            var taps = [CGEventTapInformation](repeating: CGEventTapInformation(), count: Int(count))
+            if CGGetEventTapList(count, &taps, &count) == .success {
+                let modifiers = UInt64(1) << CGEventType.flagsChanged.rawValue
+                for tap in taps.prefix(Int(count)) where tap.enabled && tap.eventsOfInterest & modifiers != 0 {
+                    if let app = NSRunningApplication(processIdentifier: pid_t(tap.tappingProcess)) { add(app) }
+                }
+            }
+        }
+        let known = ["Wispr Flow", "Superwhisper", "Aqua Voice", "Willow", "Monologue", "Spokenly", "VoiceInk", "OpenWhispr", "FluidVoice", "Hex"]
+        for app in NSWorkspace.shared.runningApplications
+        where known.contains(where: { app.localizedName?.localizedCaseInsensitiveCompare($0) == .orderedSame }) { add(app) }
         return names
+    }
+
+    // Apple's own apps and helpers: signed into the system's folders, or Apple's bundle IDs.
+    private static func isApple(_ app: NSRunningApplication) -> Bool {
+        if app.bundleIdentifier?.hasPrefix("com.apple.") == true { return true }
+        let path = app.executableURL?.path ?? app.bundleURL?.path ?? ""
+        return ["/System/", "/usr/", "/Library/Apple/"].contains { path.hasPrefix($0) }
+    }
+
+    // The apps you said may share fn with Koe ("Keep fn").
+    static var sharing: [String] {
+        get { UserDefaults.standard.stringArray(forKey: "fnSharedWith") ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: "fnSharedWith") }
     }
 
     // What macOS does with 🌐 itself (Keyboard settings, "Press 🌐 key to"),

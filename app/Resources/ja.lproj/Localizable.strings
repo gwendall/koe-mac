@@ -177,7 +177,6 @@
 "Recent" = "最近";
 "now" = "たった今";
 "%@ is open and may use fn too: both would start at once." = "%@ が起動中で、fn を使っている可能性があります。両方が同時に動き出します。";
-"%@ may use fn too, and start along with Koe. Quit it, or give Koe another key with Change the Shortcut below." = "%@ も fn を使っていて、Koe と一緒に動き出すかもしれません。終了するか、下の「ショートカットを変更」で Koe に別のキーを割り当ててください。";
 "Bottom" = "下";
 "Top" = "上";
 "Left" = "左";
@@ -191,3 +190,10 @@
 "Move Koe to Applications?" = "Koeをアプリケーションフォルダに移動しますか？";
 "Move to Applications" = "アプリケーションに移動";
 "Not Now" = "今はしない";
+"%@ also uses fn" = "%@ も fn を使っています";
+"%@ may start on fn too: see Settings" = "%@ も fn で起動するかもしれません。設定を確認";
+"Both would start at once. Keep fn for Koe, or give Koe another key." = "両方が同時に動き出します。fn を Koe に使うか、別のキーを割り当ててください。";
+"FN IS SHARED" = "FN が共有されています";
+"Keep fn" = "fn のまま";
+"Nothing when you press %@? Another app may take it first: give Koe another key below." = "%@ を押しても反応しない？別のアプリが先に受け取っているかもしれません。下で Koe に別のキーを割り当ててください。";
+"Use %@" = "%@ を使う";
