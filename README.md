@@ -8,7 +8,10 @@ the Apple Neural Engine (through [FluidAudio](https://github.com/FluidInference/
 no account, no cloud, nothing to choose.
 
 - **Hold fn** and talk; let go and the words are typed where your cursor is
-  (even if you clicked another field meanwhile). Escape cancels.
+  (even if you clicked another field meanwhile). Escape cancels. A small pill
+  low on the screen shows Koe listening, then a check when the words land.
+- **25 European languages**, found on their own, even when you switch in the
+  middle of a dictation. A **dictionary** spells names and jargon your way.
 - **Your shortcut:** fn, a modifier on its own (right ⌥…), or a combination;
   hold to talk, or press to start and stop.
 - **The menu** keeps your last five dictations: click one to copy it.
@@ -19,7 +22,8 @@ no account, no cloud, nothing to choose.
 
 Koe needs an Apple silicon Mac with macOS 14 or later, the microphone, and
 Accessibility (to hear fn and to paste). It speaks the Mac's language: ten of
-them, as [Wham](https://github.com/gwendall/wham) does.
+them, as [Wham](https://github.com/gwendall/wham) does. On an Intel Mac, Koe
+0.1 (the earlier app, at [v0.koe.fm](https://v0.koe.fm)) still works.
 
 ## Install
 
@@ -37,7 +41,11 @@ Uninstall: `curl -fsSL koe.fm/uninstall | sh`.
 SIGN=- scripts/build.sh     # build/Koe.app, signed ad hoc
 ```
 
-- `Koe --self-test`: the guards (shortcuts, delivery rules, silence, journal).
+It refuses to replace a Koe that is running from there: quit it first, or
+build elsewhere with `APP=<path>.app`.
+
+- `Koe --self-test`: the guards (shortcuts, typing, silence, journal, the ten
+  languages, deadlines) and thousands of random keys, transcripts and pastes.
 - `Koe --render-journey <dir>`: every screen a newcomer meets, light and dark.
 - `Koe --transcribe <file.wav>…`: what Koe hears in each file.
 - `Koe --render-toasts <dir>`, `Koe --render-sounds <dir>`: pills and sounds.
@@ -49,8 +57,8 @@ SIGN=- scripts/build.sh     # build/Koe.app, signed ad hoc
 
 ## Release
 
-Write the version's notes on koe.fm's changelog first (the koe-site repo), in
-every language, and `pnpm changelog` there writes `CHANGELOG.md` here. Then
+Write the version's notes on koe.fm's changelog first, in every language (the
+site's repo); its `pnpm changelog` writes `CHANGELOG.md` here. Then
 `scripts/release.sh 2.0.1`: the tag makes GitHub Actions build, sign with
 Developer ID, notarize, make `Koe.zip` and `Koe.dmg`, publish the release and
 update the Homebrew cask. Secrets it needs: `DEVELOPER_ID_P12`,

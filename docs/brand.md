@@ -171,8 +171,8 @@ own small pill low on the screen, bars and no words (see Voice).
 
 Wham's wave, in A major instead of E. Two notes up when Koe starts listening
 (A5, E6), the same two down when it stops. Nothing when the words are typed:
-they show up, and a sound after every dictation would soon wear. A refusal falls out of the key, as Wham's. The four menu sounds are
-Wham's, transposed.
+they show up, and a sound after every dictation would soon wear. A refusal
+falls out of the key, as Wham's. The four menu sounds are Wham's, transposed.
 
 ## Motion
 
