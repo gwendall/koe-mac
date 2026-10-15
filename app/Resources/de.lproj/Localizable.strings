@@ -1,10 +1,7 @@
 /* Koe in German. The English text is the key (app/Sources/Words.swift). */
 
 "KOE LISTENS" = "KOE HÖRT ZU";
-"Talk, it types" = "Sprich, Koe tippt";
 "No sound: check your microphone" = "Kein Ton: Prüf dein Mikrofon";
-"TYPED" = "GETIPPT";
-"Right where your cursor was" = "Genau da, wo dein Cursor war";
 "HI, I'M KOE" = "HALLO, ICH BIN KOE";
 "Hold fn and talk" = "Halte fn gedrückt und sprich";
 "KOE NEEDS YOU" = "KOE BRAUCHT DICH";
@@ -30,7 +27,6 @@
 "Hold %@ and talk, let go to type" = "Halte %@ gedrückt und sprich, lass los zum Tippen";
 "Press %@ to talk, press it again to stop" = "Drück %@ zum Sprechen, noch mal zum Beenden";
 "COPIED" = "KOPIERT";
-"%@. Paste it with ⌘V" = "%@. Mit ⌘V einsetzen";
 "Secure typing is on" = "Sichere Eingabe ist aktiv";
 "No text field in front" = "Kein Textfeld im Vordergrund";
 "That's a password field" = "Das ist ein Passwortfeld";
@@ -145,3 +141,5 @@
 "Add ⌃, ⌥ or ⌘, so typing doesn't start Koe" = "Füge ⌃, ⌥ oder ⌘ hinzu, damit Tippen Koe nicht startet";
 "⌘ with one key is taken by apps; add ⌃ or ⌥" = "⌘ mit einer Taste gehört den Apps; füge ⌃ oder ⌥ hinzu";
 "⌘Space opens Spotlight" = "⌘Leertaste öffnet Spotlight";
+"%1$@: “%2$@”" = "%1$@: „%2$@“";
+"So Koe hears you on this Mac, never online." = "Damit Koe dich auf diesem Mac hört, nie online.";

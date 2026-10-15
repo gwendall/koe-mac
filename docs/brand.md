@@ -42,8 +42,12 @@ Short, plain, friendly. Say what happens to the words, not what the app is.
 - Headline: **Talk. It types.**
 - One-liner: Hold a key, say it, and your words land where your cursor is.
   On your Mac, offline, in about a tenth of a second.
-- Listening: **KOE LISTENS** - Talk, it types
-- Done: **TYPED** - Right where your cursor was
+- A dictation shows no words: a small candy pill low in the middle of the
+  screen, five bars in ink. Flat and gray when no voice comes in, dancing
+  with the voice, a wave while the words are worked out, a pixel check when
+  they land. The words appearing are the confirmation; no "typed" note.
+- The pill from the menu bar is for what Koe has to say: copied (with the
+  words' first few), no sound, recovered, a permission missing.
 - First launch: **HI, I'M KOE** - Hold Fn and talk
 - The app speaks the Mac's language, as Wham does.
 

@@ -1,10 +1,7 @@
 /* Koe in Simplified Chinese. The English text is the key (app/Sources/Words.swift). */
 
 "KOE LISTENS" = "KOE 正在听";
-"Talk, it types" = "说吧，它来打字";
 "No sound: check your microphone" = "没有声音：请检查麦克风";
-"TYPED" = "已输入";
-"Right where your cursor was" = "就在光标所在的位置";
 "HI, I'M KOE" = "你好，我是 KOE";
 "Hold fn and talk" = "按住 fn 说话";
 "KOE NEEDS YOU" = "KOE 需要你";
@@ -30,7 +27,6 @@
 "Hold %@ and talk, let go to type" = "按住 %@ 说话，松开即输入";
 "Press %@ to talk, press it again to stop" = "按 %@ 开始说话，再按一次停止";
 "COPIED" = "已拷贝";
-"%@. Paste it with ⌘V" = "%@。用 ⌘V 粘贴";
 "Secure typing is on" = "安全输入已打开";
 "No text field in front" = "前台没有文本栏";
 "That's a password field" = "这是密码栏";
@@ -145,3 +141,5 @@
 "Add ⌃, ⌥ or ⌘, so typing doesn't start Koe" = "请加上 ⌃、⌥ 或 ⌘，以免打字时启动 Koe";
 "⌘ with one key is taken by apps; add ⌃ or ⌥" = "⌘ 加一个键已被 App 占用；请加上 ⌃ 或 ⌥";
 "⌘Space opens Spotlight" = "⌘空格 会打开“聚焦”";
+"%1$@: “%2$@”" = "%1$@：“%2$@”";
+"So Koe hears you on this Mac, never online." = "这样 Koe 只在这台 Mac 上听你说话，从不联网。";

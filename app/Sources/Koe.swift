@@ -13,9 +13,10 @@ import ServiceManagement
 final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let toast = Toast()
+    private let indicator = Indicator()
     private let hotkey = Hotkey()
     private let recorder = Recorder()
-    private let transcriber = Transcriber()
+    private var transcriber = Transcriber()
     let state = KoeState()
 
     private enum Phase { case idle, listening, transcribing, typing }
@@ -270,26 +271,23 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         resetFace?.cancel()
         show(Pixels.listening)
         play(.start)
-        pop(Toast.listening)
+        indicator.show()
         limitTimer = Timer.scheduledTimer(withTimeInterval: Self.longest, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.finish() }
         }
     }
 
-    // The bars, and "no sound" when a microphone sends nothing for 3 s after
-    // a 5 s grace (Bluetooth microphones take a moment to wake).
+    // The bars, and once a dictation "no sound" when a microphone sends
+    // nothing for 3 s after a 5 s grace (Bluetooth microphones take a moment
+    // to wake).
     private func heard(_ level: Float) {
         guard phase == .listening else { return }
-        toast.setLevel(level)
+        indicator.setLevel(level)
         if level > 0.05 {
             lastHeard = Date()
-            if warnedSilence {
-                warnedSilence = false
-                toast.setCaption(Words.say("Talk, it types"))
-            }
         } else if !warnedSilence, Date().timeIntervalSince(startedAt) > 5, Date().timeIntervalSince(lastHeard) > 3 {
             warnedSilence = true
-            toast.setCaption(Words.say("No sound: check your microphone"))
+            pop(Toast.note(Words.say("KOE LISTENS"), Words.say("No sound: check your microphone")))
         }
     }
 
@@ -298,12 +296,12 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         limitTimer?.invalidate()
         let samples = recorder.stop()
         journal.saved()
-        toast.dismiss()
         play(.stop)
         let seconds = Date().timeIntervalSince(startedAt)
         // A tap on the shortcut, not a dictation.
         guard seconds > 0.25, samples.count > 4_000 else {
             Log.note("dictation", ["tap": true])
+            indicator.hide()
             journal.discard()
             self.journal = nil
             phase = .idle
@@ -311,6 +309,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         if Recorder.isSilent(samples) {
+            indicator.hide()
             journal.discard()
             self.journal = nil
             phase = .idle
@@ -321,6 +320,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         phase = .transcribing
+        indicator.work()
         let current = dictation
         let origin = self.origin ?? Target.origin()
         Task { [weak self] in
@@ -329,6 +329,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard self.dictation == current else { return } // cancelled meanwhile
             guard let text else {
                 // Kept in the journal: the menu offers it again.
+                self.indicator.hide()
                 self.journal = nil
                 self.phase = .idle
                 self.show(Pixels.ready)
@@ -345,17 +346,18 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func transcribe(_ samples: [Float]) async -> String? {
         let audio = Recorder.trimmed(samples)
         let seconds = Double(audio.count) / 16_000
-        let deadline = max(120, 2 * seconds + 60)
+        // About 0.1 s for a sentence, 4 s for half an hour: far past that the
+        // model is stuck, and Koe lets go (the words stay in the journal).
+        let deadline = 15 + seconds / 2
         let started = Date()
-        let text: String? = await withTaskGroup(of: String?.self) { group in
-            group.addTask { [transcriber] in try? await transcriber.transcribe(audio) }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(deadline))
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first
+        let model = transcriber
+        let text = await Deadline.race(deadline) { try? await model.transcribe(audio) }
+        if text == nil, Date().timeIntervalSince(started) >= deadline {
+            // A stuck model would hold every dictation after this one: start afresh.
+            Log.note("model", ["stuck": Int(seconds)])
+            transcriber = Transcriber()
+            state.modelReady = false
+            prepareModel()
         }
         Log.note("transcribed", ["audio": String(format: "%.1f", seconds), "ms": Int(Date().timeIntervalSince(started) * 1000),
                                  "words": text.map { $0.split(separator: " ").count } ?? -1])
@@ -366,6 +368,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func deliver(_ text: String, from origin: Target.Origin, journal: Journal) async {
         self.journal = nil
         guard !text.isEmpty else {
+            indicator.hide()
             journal.discard()
             phase = .idle
             show(Pixels.ready)
@@ -401,14 +404,16 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.note("delivered", ["result": "\(result)".components(separatedBy: "(").first ?? "?"])
         switch result {
         case .typed, .probably:
+            // The words showing up say it; the check and the sound confirm.
+            indicator.done()
             show(Pixels.typed)
             play(.typed)
-            pop(Toast.typed)
         case .copied(let why):
             Log.note("copied", ["why": why])
+            indicator.hide()
             show(Pixels.typed)
             play(.select)
-            pop(Toast.note(Words.say("COPIED"), Words.say("%@. Paste it with ⌘V", why)))
+            pop(Toast.note(Words.say("COPIED"), Words.say("%1$@: “%2$@”", why, Self.opening(of: text))))
         }
         let reset = DispatchWorkItem { [weak self] in
             guard self?.phase == .idle else { return }
@@ -418,19 +423,27 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: reset)
     }
 
+    // The words' first few, for the toast: enough to know which dictation it is.
+    static func opening(of text: String) -> String {
+        guard text.count > 28 else { return text }
+        let cut = text.prefix(28)
+        let words = cut.split(separator: " ").dropLast()
+        return (words.isEmpty ? String(cut) : words.joined(separator: " ")) + "…"
+    }
+
     // Escape, or fn with another key.
     private func cancel(quietly: Bool) {
         switch phase {
         case .listening:
             limitTimer?.invalidate()
             _ = recorder.stop()
-            toast.dismiss()
         case .transcribing:
             break
         case .typing, .idle:
             return
         }
         dictation += 1
+        indicator.hide()
         journal?.discard()
         journal = nil
         phase = .idle

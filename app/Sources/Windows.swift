@@ -240,6 +240,8 @@ struct Welcome: View {
             Brand.title(Words.say("Get Koe ready"), size: 16)
             Text(Words.say("Koe only listens while you hold your shortcut, and only types where you ask."))
                 .font(Brand.body(14)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            // First, as it comes down while the two switches are flipped.
+            modelRow
             StepRow(done: state.microphone == true, next: true, title: Words.say("Microphone"),
                     detail: state.microphone == false
                         ? Words.say("Turned off. Turn Koe on in Privacy & Security › Microphone.")
@@ -252,7 +254,6 @@ struct Welcome: View {
                         ? Words.say("Koe hears your shortcut in every app.")
                         : Words.say("To hear your shortcut from any app, and to type the words for you. Turn Koe on in the list that opens."),
                     button: Words.say("Open Settings")) { state.openAccessibility() }
-            modelRow
             Spacer()
             HStack {
                 Spacer()
@@ -270,7 +271,8 @@ struct Welcome: View {
         if state.modelFailed {
             detail = Words.say("The download stopped. Check your connection.")
         } else if let share = state.modelShare {
-            detail = Words.say("Downloading once (630 MB): %@. You can go on meanwhile.", Words.percent(Int(share * 100)))
+            detail = Words.say("So Koe hears you on this Mac, never online.") + " "
+                + Words.say("Downloading once (630 MB): %@. You can go on meanwhile.", Words.percent(Int(share * 100)))
         } else if state.modelReady {
             detail = Words.say("Ready, on this Mac. Works offline.")
         } else {

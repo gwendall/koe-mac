@@ -1,10 +1,7 @@
 /* Koe in Japanese. The English text is the key (app/Sources/Words.swift). */
 
 "KOE LISTENS" = "KOEが聞いています";
-"Talk, it types" = "話すと入力されます";
 "No sound: check your microphone" = "音が届きません。マイクを確認してください";
-"TYPED" = "入力しました";
-"Right where your cursor was" = "カーソルのあった場所に";
 "HI, I'M KOE" = "こんにちは、KOEです";
 "Hold fn and talk" = "fnを押したまま話してください";
 "KOE NEEDS YOU" = "KOEからのお願い";
@@ -30,7 +27,6 @@
 "Hold %@ and talk, let go to type" = "%@を押したまま話し、離すと入力されます";
 "Press %@ to talk, press it again to stop" = "%@を押して話し、もう一度押すと止まります";
 "COPIED" = "コピーしました";
-"%@. Paste it with ⌘V" = "%@。⌘Vでペーストしてください";
 "Secure typing is on" = "セキュリティ保護された入力がオンです";
 "No text field in front" = "手前にテキストフィールドがありません";
 "That's a password field" = "パスワードフィールドです";
@@ -145,3 +141,5 @@
 "Add ⌃, ⌥ or ⌘, so typing doesn't start Koe" = "入力中にKoeが始まらないよう、⌃、⌥、⌘のいずれかを加えてください";
 "⌘ with one key is taken by apps; add ⌃ or ⌥" = "⌘と1つのキーはアプリが使います。⌃か⌥を加えてください";
 "⌘Space opens Spotlight" = "⌘スペースはSpotlightを開きます";
+"%1$@: “%2$@”" = "%1$@：「%2$@」";
+"So Koe hears you on this Mac, never online." = "KoeがこのMacの中だけで聞き取るためです。オンラインは使いません。";

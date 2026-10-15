@@ -3,9 +3,9 @@ import CoreText
 import QuartzCore
 
 // Wham's pill (docs/brand.md), dropping out of the menu bar under Koe's
-// bubble. While Koe listens it stays, with five bars on its right that follow
-// the voice; otherwise it says one thing and leaves. The title is in pixel
-// letters (`TitleFont`) and comes in letter by letter; the line under it explains.
+// bubble: whatever Koe has to tell you, said once, then gone. The dictation
+// itself shows low on the screen (`Indicator`). The title is in pixel letters
+// (`TitleFont`) and comes in letter by letter; the line under it explains.
 // Core Animation only, so it runs at the display's refresh rate.
 @MainActor
 final class Toast {
@@ -20,19 +20,7 @@ final class Toast {
         let fill: [CGColor]
         let rim: CGColor?
         let glow: CGColor?
-        // Listening: stays until `dismiss()`, with the voice's bars.
-        var live = false
     }
-
-    static var listening: Style { Style(
-        title: Words.say("KOE LISTENS"), caption: Words.say("Talk, it types"), sprite: Pixels.listening, spin: -.pi / 8,
-        ink: Pixels.ink, captionInk: Pixels.ink.copy(alpha: 0.72)!, spriteInk: Pixels.ink,
-        fill: Pixels.candy, rim: nil, glow: Pixels.glow, live: true) }
-
-    static var typed: Style { Style(
-        title: Words.say("TYPED"), caption: Words.say("Right where your cursor was"), sprite: Pixels.typed, spin: .pi / 8,
-        ink: Pixels.ink, captionInk: Pixels.ink.copy(alpha: 0.72)!, spriteInk: Pixels.ink,
-        fill: Pixels.candy, rim: nil, glow: Pixels.glow) }
 
     // The first launch: what Koe is and how to use it.
     static var hello: Style { note(Words.say("HI, I'M KOE"), Words.say("Hold fn and talk")) }
@@ -55,19 +43,6 @@ final class Toast {
     let host = NSView()
     private let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
     private var generation = 0
-    // The live pill's bars and stage, while it shows.
-    private var bars: [CALayer] = []
-    private var liveStage: CALayer?
-    private var liveCaption: CALayer?
-    private var liveInk: CGColor?
-    private var liveScale: CGFloat = 2
-    private var livePill: CALayer?
-    private var liveHalo: CALayer?
-    private var liveText: CGFloat = 0 // the title's width, or the text's left edge to the bars
-    private var liveFixed: CGFloat = 0 // everything but the text
-    private static let barCount = 5, barWidth: CGFloat = 4, barGap: CGFloat = 3, barMax: CGFloat = 22
-    // Each bar's share of the level, so they move as a voice does, not in step.
-    private static let barShape: [CGFloat] = [0.55, 0.9, 1, 0.75, 0.5]
 
     // What the evals take a picture of.
     var window: NSWindow { panel }
@@ -99,17 +74,10 @@ final class Toast {
         // The sprite sits in the pill's round end, as far from its left edge as from the top and bottom.
         let padLeft = (Self.height - icon) / 2, gap: CGFloat = 11, padRight: CGFloat = 20
         let height = Self.height
-        let barsWidth = style.live ? CGFloat(Self.barCount) * Self.barWidth + CGFloat(Self.barCount - 1) * Self.barGap + 14 : 0
-        let fixed = padLeft + icon + gap + barsWidth + padRight
-        let width = fixed + max(titleWidth, caption?.size.width ?? 0)
-        // The pill fits its words; the live one can grow into "No sound…" later,
-        // so its window keeps room for that line around it.
-        let reserve = style.live ? Self.textImage(Words.say("No sound: check your microphone"), font: Self.captionFont,
-                                                  color: style.captionInk, scale: scale, crisp: false)?.size.width ?? 0 : 0
-        let room = max(width, fixed + reserve)
+        let width = padLeft + icon + gap + max(titleWidth, caption?.size.width ?? 0) + padRight
 
         // Place the pill just under the bubble, inside the screen.
-        let size = NSSize(width: room + 2 * Self.margin, height: height + 2 * Self.margin)
+        let size = NSSize(width: width + 2 * Self.margin, height: height + 2 * Self.margin)
         var origin = NSPoint(x: (anchor.midX - size.width / 2).rounded(), y: anchor.minY - 6 - height - Self.margin)
         if let screen = NSScreen.screens.first(where: { $0.frame.intersects(anchor) }) {
             origin.x = min(max(origin.x, screen.frame.minX - Self.margin + 8), screen.frame.maxX - size.width + Self.margin - 8)
@@ -128,7 +96,6 @@ final class Toast {
         root.addSublayer(stage)
 
         let radius = height / 2
-        var haloLayer: CALayer?
         if let glow = style.glow {
             let halo = CALayer()
             halo.frame = stage.bounds
@@ -138,7 +105,6 @@ final class Toast {
             halo.shadowRadius = 13
             halo.shadowOffset = .zero
             stage.addSublayer(halo)
-            haloLayer = halo
         }
         let pill = CAGradientLayer()
         pill.frame = stage.bounds
@@ -190,31 +156,7 @@ final class Toast {
             pill.addSublayer(letter)
             letters.append(letter)
         }
-        bars = []
-        liveStage = style.live ? stage : nil
-        livePill = style.live ? pill : nil
-        liveHalo = style.live ? haloLayer : nil
-        liveText = titleWidth
-        liveFixed = fixed
-        if style.live {
-            var x = width - padRight - CGFloat(Self.barCount) * Self.barWidth - CGFloat(Self.barCount - 1) * Self.barGap
-            for _ in 0..<Self.barCount {
-                let bar = CALayer()
-                bar.backgroundColor = style.ink
-                bar.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-                bar.bounds = CGRect(x: 0, y: 0, width: Self.barWidth, height: Self.barWidth)
-                bar.position = CGPoint(x: x + Self.barWidth / 2, y: height / 2)
-                pill.addSublayer(bar)
-                bars.append(bar)
-                x += Self.barWidth + Self.barGap
-            }
-        }
         let captionLayer = CALayer()
-        if style.live {
-            liveCaption = captionLayer
-            liveInk = style.captionInk
-            liveScale = scale
-        }
         if let caption {
             captionLayer.contents = caption.image
             captionLayer.contentsScale = scale
@@ -228,27 +170,26 @@ final class Toast {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if reduceMotion {
-            Self.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.2)
+            Motion.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.2)
         } else {
             // Coming in: a spring, ω 16, ζ 0.72.
-            Self.spring(stage, "transform.scale", from: 0.92, to: 1, at: now, omega: 16, zeta: 0.72)
-            Self.spring(stage, "transform.translation.y", from: 12, to: 0, at: now, omega: 16, zeta: 0.72)
-            Self.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.12)
-            Self.spring(sprite, "transform.scale", from: 0.2, to: 1, at: now + 0.06, omega: 18, zeta: 0.42)
-            Self.spring(sprite, "transform.rotation.z", from: style.spin, to: 0, at: now + 0.06, omega: 16, zeta: 0.5)
+            Motion.spring(stage, "transform.scale", from: 0.92, to: 1, at: now, omega: 16, zeta: 0.72)
+            Motion.spring(stage, "transform.translation.y", from: 12, to: 0, at: now, omega: 16, zeta: 0.72)
+            Motion.basic(stage, "opacity", from: 0, to: 1, at: now, duration: 0.12)
+            Motion.spring(sprite, "transform.scale", from: 0.2, to: 1, at: now + 0.06, omega: 18, zeta: 0.42)
+            Motion.spring(sprite, "transform.rotation.z", from: style.spin, to: 0, at: now + 0.06, omega: 16, zeta: 0.5)
             // Each letter drops into place, one after the other.
             for (i, letter) in letters.enumerated() {
                 let start = now + 0.07 + 0.022 * Double(i)
-                Self.basic(letter, "opacity", from: 0, to: 1, at: start, duration: 0.1)
-                Self.basic(letter, "transform.translation.y", from: 6, to: 0, at: start, duration: 0.14)
+                Motion.basic(letter, "opacity", from: 0, to: 1, at: start, duration: 0.1)
+                Motion.basic(letter, "transform.translation.y", from: 6, to: 0, at: start, duration: 0.14)
             }
             let after = now + 0.07 + 0.022 * Double(letters.count)
-            Self.basic(captionLayer, "opacity", from: 0, to: 1, at: after, duration: 0.24)
-            Self.basic(captionLayer, "transform.translation.y", from: 3, to: 0, at: after, duration: 0.24)
+            Motion.basic(captionLayer, "opacity", from: 0, to: 1, at: after, duration: 0.24)
+            Motion.basic(captionLayer, "transform.translation.y", from: 3, to: 0, at: after, duration: 0.24)
         }
         CATransaction.commit()
 
-        guard !style.live else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.hold) { [weak self] in
             guard let self, self.generation == current else { return }
             self.leave(stage, reduceMotion: reduceMotion)
@@ -259,65 +200,6 @@ final class Toast {
         }
     }
 
-    // The voice's level, 0 to 1, on the live pill's bars.
-    func setLevel(_ level: Float) {
-        guard !bars.isEmpty else { return }
-        let level = CGFloat(max(0, min(1, level)))
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(0.08)
-        for (index, bar) in bars.enumerated() {
-            let jitter = CGFloat.random(in: 0.8...1.15)
-            let h = max(Self.barWidth, (Self.barMax * level * Self.barShape[index] * jitter).rounded())
-            bar.bounds = CGRect(x: 0, y: 0, width: Self.barWidth, height: min(Self.barMax, h))
-        }
-        CATransaction.commit()
-    }
-
-    // A new line under the live pill's title ("No sound…"). The pill grows
-    // or shrinks to it, from its middle, the bars riding its right end.
-    func setCaption(_ text: String) {
-        guard let layer = liveCaption, let ink = liveInk, let stage = liveStage, let pill = livePill,
-              let caption = Self.textImage(text, font: Self.captionFont, color: ink, scale: liveScale, crisp: false) else { return }
-        let old = stage.bounds.width
-        let width = liveFixed + max(liveText, caption.size.width)
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        layer.contents = caption.image
-        layer.frame.size = caption.size
-        CATransaction.commit()
-        guard width != old else { return }
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(reduceMotion ? 0 : 0.22)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
-        stage.bounds.size.width = width
-        pill.frame = stage.bounds
-        if let halo = liveHalo {
-            halo.frame = stage.bounds
-            let radius = stage.bounds.height / 2
-            halo.shadowPath = CGPath(roundedRect: stage.bounds, cornerWidth: radius, cornerHeight: radius, transform: nil)
-        }
-        for bar in bars { bar.position.x += width - old }
-        CATransaction.commit()
-    }
-
-    // Takes the live pill away.
-    func dismiss() {
-        guard let stage = liveStage else { return }
-        generation += 1
-        let current = generation
-        liveStage = nil
-        liveCaption = nil
-        livePill = nil
-        liveHalo = nil
-        bars = []
-        leave(stage, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            guard let self, self.generation == current else { return }
-            self.panel.orderOut(nil)
-        }
-    }
-
     // Leaving: 0.16 s, easing in, back up toward the menu bar.
     private func leave(_ stage: CALayer, reduceMotion: Bool) {
         let now = CACurrentMediaTime()
@@ -325,12 +207,12 @@ final class Toast {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if !reduceMotion {
-            Self.basic(stage, "transform.scale", from: 1, to: 0.92, at: now, duration: 0.16, timing: timing)
-            Self.basic(stage, "transform.translation.y", from: 0, to: 8, at: now, duration: 0.16, timing: timing)
+            Motion.basic(stage, "transform.scale", from: 1, to: 0.92, at: now, duration: 0.16, timing: timing)
+            Motion.basic(stage, "transform.translation.y", from: 0, to: 8, at: now, duration: 0.16, timing: timing)
             // The model ends gone too, so nothing snaps back when the animations end.
             stage.transform = CATransform3DTranslate(CATransform3DMakeScale(0.92, 0.92, 1), 0, 8, 0)
         }
-        Self.basic(stage, "opacity", from: 1, to: 0, at: now, duration: 0.16, timing: timing)
+        Motion.basic(stage, "opacity", from: 1, to: 0, at: now, duration: 0.16, timing: timing)
         stage.opacity = 0
         CATransaction.commit()
     }
@@ -355,32 +237,6 @@ final class Toast {
         CTLineDraw(line, context)
         guard let image = context.makeImage() else { return nil }
         return (image, size, below)
-    }
-
-    private static func spring(_ layer: CALayer, _ keyPath: String, from: CGFloat, to: CGFloat, at time: CFTimeInterval, omega: CGFloat, zeta: CGFloat) {
-        let animation = CASpringAnimation(keyPath: keyPath)
-        animation.mass = 1
-        animation.stiffness = omega * omega
-        animation.damping = 2 * zeta * omega
-        animation.fromValue = from
-        animation.toValue = to
-        animation.duration = animation.settlingDuration
-        animation.beginTime = time
-        animation.fillMode = .backwards
-        layer.add(animation, forKey: keyPath)
-    }
-
-    // Animations hold their start value until they begin, then leave the model value showing.
-    private static func basic(_ layer: CALayer, _ keyPath: String, from: CGFloat, to: CGFloat, at time: CFTimeInterval, duration: CFTimeInterval,
-                              timing: CAMediaTimingFunction = CAMediaTimingFunction(name: .easeOut)) {
-        let animation = CABasicAnimation(keyPath: keyPath)
-        animation.fromValue = from
-        animation.toValue = to
-        animation.duration = duration
-        animation.beginTime = time
-        animation.fillMode = .backwards
-        animation.timingFunction = timing
-        layer.add(animation, forKey: keyPath)
     }
 }
 
@@ -457,5 +313,36 @@ enum TitleFont {
         let units = Array(text.utf16)
         var glyphs = [CGGlyph](repeating: 0, count: units.count)
         return CTFontGetGlyphsForCharacters(font, units, &glyphs, units.count) && !glyphs.contains(0)
+    }
+}
+
+// The springs and fades every pill moves with: Core Animation only, so they
+// run at the display's refresh rate.
+@MainActor
+enum Motion {
+    static func spring(_ layer: CALayer, _ keyPath: String, from: CGFloat, to: CGFloat, at time: CFTimeInterval, omega: CGFloat, zeta: CGFloat) {
+        let animation = CASpringAnimation(keyPath: keyPath)
+        animation.mass = 1
+        animation.stiffness = omega * omega
+        animation.damping = 2 * zeta * omega
+        animation.fromValue = from
+        animation.toValue = to
+        animation.duration = animation.settlingDuration
+        animation.beginTime = time
+        animation.fillMode = .backwards
+        layer.add(animation, forKey: keyPath)
+    }
+
+    // Animations hold their start value until they begin, then leave the model value showing.
+    static func basic(_ layer: CALayer, _ keyPath: String, from: CGFloat, to: CGFloat, at time: CFTimeInterval, duration: CFTimeInterval,
+                              timing: CAMediaTimingFunction = CAMediaTimingFunction(name: .easeOut)) {
+        let animation = CABasicAnimation(keyPath: keyPath)
+        animation.fromValue = from
+        animation.toValue = to
+        animation.duration = duration
+        animation.beginTime = time
+        animation.fillMode = .backwards
+        animation.timingFunction = timing
+        layer.add(animation, forKey: keyPath)
     }
 }

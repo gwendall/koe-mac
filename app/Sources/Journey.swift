@@ -49,9 +49,7 @@ enum Journey {
         let anchor = NSRect(x: 600, y: 860, width: 22, height: 22)
         let notes: [(String, Toast.Style)] = [
             ("t1-hello", Toast.hello),
-            ("t2-listening", Toast.listening),
-            ("t3-typed", Toast.typed),
-            ("t4-copied-password", Toast.note(Words.say("COPIED"), Words.say("%@. Paste it with ⌘V", Words.say("That's a password field")))),
+            ("t4-copied-password", Toast.note(Words.say("COPIED"), Words.say("%1$@: “%2$@”", Words.say("That's a password field"), "hunter2"))),
             ("t5-almost-ready", Toast.note(Words.say("ALMOST READY"), Words.say("Koe's voice model is at %@", Words.percent(42)))),
             ("t6-no-sound", Toast.note(Words.say("NO SOUND"), Words.say("The microphone sent nothing. Check it in Settings"))),
             ("t7-cancelled", Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed"))),
@@ -61,14 +59,7 @@ enum Journey {
         for (name, style) in notes {
             let toast = Toast()
             toast.show(style, under: anchor)
-            if style.live { toast.setLevel(0.7) }
-            if name == "t2-listening" {
-                snapshot(toast, to: directory.appendingPathComponent("\(name).png"))
-                toast.setCaption(Words.say("No sound: check your microphone"))
-                snapshot(toast, to: directory.appendingPathComponent("t2b-listening-no-sound.png"))
-            } else {
-                snapshot(toast, to: directory.appendingPathComponent("\(name).png"))
-            }
+            Shots.picture(toast.host, to: directory.appendingPathComponent("\(name).png"), background: 0.93)
             toast.window.orderOut(nil)
         }
     }
@@ -88,19 +79,5 @@ enum Journey {
         content.cacheDisplay(in: content.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
         window.orderOut(nil)
-    }
-
-    private static func snapshot(_ toast: Toast, to url: URL) {
-        guard let layer = toast.host.layer else { return }
-        let scale: CGFloat = 2, size = toast.host.bounds.size
-        guard let context = CGContext(data: nil, width: Int(size.width * scale), height: Int(size.height * scale), bitsPerComponent: 8,
-                                      bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
-        context.setFillColor(CGColor(gray: 0.93, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: size.width * scale, height: size.height * scale))
-        context.scaleBy(x: scale, y: scale)
-        layer.render(in: context)
-        guard let image = context.makeImage() else { return }
-        try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
     }
 }

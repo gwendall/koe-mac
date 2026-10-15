@@ -25,6 +25,7 @@ enum SelfTest {
         journal()
         fuzz()
         languages()
+        deadline()
         print("\(checks - failures)/\(checks) checks passed")
         return failures == 0 ? 0 : 1
     }
@@ -183,6 +184,25 @@ enum SelfTest {
         _ = hotkey.handle(.keyDown, event(.keyDown, 53))
         check(captured == .some(nil), "capture: Escape cancels")
         check(!hotkey.isCapturing, "capture: over")
+    }
+
+    // A model that never answers lets go at its deadline, not after it.
+    private static func deadline() {
+        let done = DispatchSemaphore(value: 0)
+        var answer: String? = "late"
+        let start = Date()
+        Task.detached {
+            answer = await Deadline.race(0.2) { try? await Task.sleep(for: .seconds(30)); return "late" }
+            done.signal()
+        }
+        done.wait()
+        check(answer == nil && Date().timeIntervalSince(start) < 2, "deadline: a stuck model lets go in time")
+        Task.detached {
+            answer = await Deadline.race(5) { "quick" }
+            done.signal()
+        }
+        done.wait()
+        check(answer == "quick", "deadline: a quick answer comes through")
     }
 
     private static func journal() {
