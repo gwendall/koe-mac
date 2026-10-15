@@ -45,6 +45,8 @@ enum Update {
 
     // Downloads `version` and puts it where `app` is. Nil once done, or the step that failed.
     static func install(_ version: String, over app: URL) -> String? {
+        // Checked again here: never over a build from source.
+        guard isGenuine(app) else { return "not a signed release" }
         let files = FileManager.default
         guard let folder = try? files.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: app, create: true) else {
             return "no folder to download to"

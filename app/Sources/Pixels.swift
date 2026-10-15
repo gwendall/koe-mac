@@ -13,6 +13,20 @@ enum Pixels {
     static let listening = top + ["####...####", "####...####"] + bottom
     static let typed = top + ["###.###.###", "####...####"] + bottom
 
+    // An update waiting, in the menu's update row: Wham's dot.
+    static let dot = [".####.", "######", "######", "######", "######", ".####."]
+
+    // The sprite's cells as squares of `cell` points, from `origin` (bottom left).
+    static func path(_ rows: [String], origin: CGPoint, cell: CGFloat = 1) -> CGPath {
+        let path = CGMutablePath()
+        for (y, row) in rows.enumerated() {
+            for (x, char) in row.enumerated() where char == "#" {
+                path.addRect(CGRect(x: origin.x + CGFloat(x) * cell, y: origin.y + CGFloat(rows.count - 1 - y) * cell, width: cell, height: cell))
+            }
+        }
+        return path
+    }
+
     static func srgb(_ hex: UInt32, alpha: CGFloat = 1) -> CGColor {
         CGColor(srgbRed: CGFloat((hex >> 16) & 0xff) / 255, green: CGFloat((hex >> 8) & 0xff) / 255,
                 blue: CGFloat(hex & 0xff) / 255, alpha: alpha)

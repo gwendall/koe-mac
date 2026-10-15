@@ -36,6 +36,15 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var permissionTimer: Timer?
     private var updateTimer: Timer?
+    // The update check, and the menu while open (Wham's way, see checkForUpdate).
+    private var updating = false
+    private var asked = false
+    private var available: String?
+    private var installing: String?
+    private let menu = NSMenu()
+    private weak var openMenu: NSMenu?
+    private weak var updateRow: UpdateRow?
+    private var afterMenu: [@MainActor () -> Void] = []
     private var poweringOff = false
     private var sounds: [Chime.Sound: NSSound] = [:]
     private var playing: NSSound?
@@ -67,9 +76,12 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         show(Pixels.ready)
         item.button?.setAccessibilityLabel("Koe")
-        let menu = NSMenu()
+        // Opened by hand (showMenu), as Wham's: attached to the status item,
+        // macOS would close the menu on a click in a row meant to keep it open.
         menu.delegate = self
-        item.menu = menu
+        item.button?.target = self
+        item.button?.action = #selector(clicked)
+        item.button?.sendAction(on: [.leftMouseDown, .rightMouseDown])
 
         wireState()
         wireHotkey()
@@ -732,53 +744,107 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    // Checks GitHub, off the main thread; installs a newer Koe when updates
+    // are automatic or it was asked for. Asked from the menu, the update row
+    // says how it went, the menu staying open; otherwise a pill does.
     private func checkForUpdate(asked: Bool) {
+        if asked { self.asked = true }
         guard asked || Update.isOn else { return }
-        let app = Bundle.main.bundleURL
-        Task.detached { [weak self] in
+        guard !updating else { return }
+        updating = true
+        let app = Bundle.main.bundleURL, running = Update.running
+        DispatchQueue.global(qos: .utility).async {
             let latest = Update.latest()
-            let newer = latest.map { Update.isNewer($0, than: Update.running) } ?? false
-            let replaceable = newer && Update.canReplace(app)
-            await self?.found(latest, newer: newer, replaceable: replaceable, asked: asked)
+            let newer = latest.flatMap { Update.isNewer($0, than: running) ? $0 : nil }
+            let replaceable = newer != nil && Update.canReplace(app)
+            Self.onMain { self.found(latest, newer: newer, replaceable: replaceable) }
         }
     }
 
-    private func found(_ latest: String?, newer: Bool, replaceable: Bool, asked: Bool) {
-        guard let latest else {
-            if asked { play(.refused); pop(Toast.note(Words.say("NO ANSWER"), Words.say("Couldn't check for updates"))) }
-            return
+    // Back on the main thread, menu open or not: an open menu holds the main
+    // queue (and so the main actor's tasks) until it closes, while the run
+    // loop goes on.
+    nonisolated private static func onMain(_ work: @escaping @MainActor () -> Void) {
+        let loop = CFRunLoopGetMain()
+        CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue) { MainActor.assumeIsolated { work() } }
+        CFRunLoopWakeUp(loop)
+    }
+
+    // After a delay, menu open or not (see onMain).
+    private static func after(_ seconds: TimeInterval, _ work: @escaping @MainActor () -> Void) {
+        RunLoop.main.add(Timer(timeInterval: seconds, repeats: false) { _ in MainActor.assumeIsolated { work() } }, forMode: .common)
+    }
+
+    private func found(_ latest: String?, newer: String?, replaceable: Bool) {
+        Log.note("update", ["latest": latest ?? "no answer", "newer": newer != nil, "asked": asked, "replaceable": replaceable])
+        if latest != nil { available = newer }
+        guard let newer else {
+            return settle(latest == nil ? (Words.say("NO ANSWER"), Words.say("Couldn't check for updates"), .said(Line.noAnswer), .refused)
+                                        : (Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", Update.running), .done(Line.latest(Update.running)), .check(true)))
         }
-        guard newer else {
-            if asked { play(.select); pop(Toast.note(Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", Update.running))) }
-            return
-        }
+        // A build from source, or a folder Koe can't write to: koe.fm has it.
         guard replaceable else {
-            pop(Toast.note(Words.say("KOE %@ IS OUT", latest), Words.say("Get it from koe.fm")))
-            return
+            return settle((Words.say("KOE %@ IS OUT", newer), Words.say("Get it from koe.fm"), nil, .select), openSite: true)
         }
-        install(latest)
+        install(newer)
     }
 
     // Never under a dictation: waits for idle, then swaps and relaunches.
     private func install(_ version: String) {
-        guard phase == .idle else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in MainActor.assumeIsolated { self?.install(version) } }
-            return
-        }
+        guard phase == .idle else { return Self.after(30) { [weak self] in self?.install(version) } }
+        installing = version
+        updateRow?.state = updateState
         let app = Bundle.main.bundleURL
-        Task.detached { [weak self] in
+        DispatchQueue.global(qos: .utility).async {
             let failure = Update.install(version, over: app)
-            await self?.installed(version, failure: failure)
+            Self.onMain {
+                Log.note("update", failure.map { ["failed": $0] } ?? ["to": version])
+                if failure == nil { return self.relaunch() }
+                self.settle((Words.say("CAN'T UPDATE"), Words.say("Koe %@ did not install, try again later", version), .said(Line.failed(version)), .refused))
+            }
         }
     }
 
-    private func installed(_ version: String, failure: String?) {
-        if let failure {
-            Log.note("update", ["failed": failure])
+    // The check is over: whoever asked from the menu hears how it went, in
+    // the update row if the menu is still open, else in a pill.
+    private func settle(_ note: (title: String, caption: String, row: UpdateRow.State?, sound: Chime.Sound)?, openSite: Bool = false) {
+        updating = false
+        installing = nil
+        let told = asked
+        asked = false
+        guard told, let note else {
+            updateRow?.state = updateState
             return
         }
-        Log.note("update", ["to": version])
-        relaunch()
+        if let updateRow, let row = note.row {
+            updateRow.state = row
+            return
+        }
+        closeMenu {
+            self.pop(Toast.note(note.title, note.caption))
+            self.play(note.sound)
+            if openSite { NSWorkspace.shared.open(URL(string: "https://koe.fm")!) }
+        }
+    }
+
+    private var updateState: UpdateRow.State {
+        if let installing { return .busy(Line.updating(to: installing)) }
+        if updating { return .busy(Line.checking) }
+        return available.map { .offer(Line.update(to: $0)) } ?? .action(Line.check)
+    }
+
+    // What the update row says, each line written once (Wham's lines).
+    private enum Line {
+        static var check: String { Words.say("Check for Updates") }
+        static var checking: String { Words.say("Checking for Updates…") }
+        static var noAnswer: String { Words.say("Can't check now, try later") }
+        static func update(to version: String) -> String { Words.say("Update to Koe %@", version) }
+        static func updating(to version: String) -> String { Words.say("Updating to Koe %@…", version) }
+        static func latest(_ version: String) -> String { Words.say("Koe %@ is up to date", version) }
+        static func failed(_ version: String) -> String { Words.say("Koe %@ did not install", version) }
+        static func all(running: String, found: String) -> [String] {
+            [check, checking, noAnswer, update(to: found), updating(to: found), latest(running), failed(found)]
+        }
     }
 
     private func relaunch() {
@@ -791,10 +857,17 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - The menu
 
+    // Wham's menu, Koe's lines: the state in gray; the last dictations, a
+    // click copying one; options as rows that keep the menu open on a click;
+    // About, What's New, the update row (it checks right there) and the
+    // author; Quit. As narrow as its lines allow: dictations are cut to fit.
     func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu.supermenu == nil else { return }
         menu.removeAllItems()
         let status = NSMenuItem(title: statusLine, action: nil, keyEquivalent: "")
         status.isEnabled = false
+        // Keeps the menu's check column, so titles never move when an option is ticked.
+        status.offStateImage = Self.blankState
         menu.addItem(status)
         if state.modelFailed { menu.addItem(entry(Words.say("Try Again"), #selector(retryModel))) }
         if state.microphone != true || !state.accessibility {
@@ -807,28 +880,172 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let dictations = recent
         if !dictations.isEmpty {
             menu.addItem(.separator())
-            let header = NSMenuItem(title: Words.say("Recent · click to copy"), action: nil, keyEquivalent: "")
-            header.isEnabled = false
-            menu.addItem(header)
-            let formatter = RelativeDateTimeFormatter()
-            formatter.locale = Words.locale
-            formatter.unitsStyle = .short
-            for (index, dictation) in dictations.enumerated() {
-                let line = dictation.text.count > 44 ? String(dictation.text.prefix(43)) + "…" : dictation.text
-                let row = entry(line, #selector(copyDictation(_:)))
-                row.tag = index
-                row.toolTip = dictation.text
-                row.attributedTitle = Self.titled(line, detail: formatter.localizedString(for: dictation.at, relativeTo: Date()))
-                menu.addItem(row)
+            menu.addItem(.sectionHeader(title: Words.say("Recent")))
+            for dictation in dictations {
+                let line = dictation.text.replacingOccurrences(of: "\n", with: " ")
+                let content = MenuRow.Content(title: line, detail: Self.ago(dictation.at))
+                let entry = row([], content: { content }) { [weak self] in
+                    self?.closeMenu {
+                        Paster.copy(dictation.text)
+                        self?.play(.select)
+                        self?.pop(Toast.note(Words.say("COPIED"), Words.say("Paste it anywhere with ⌘V")))
+                    }
+                }
+                entry.toolTip = dictation.text
+                menu.addItem(entry)
             }
         }
 
         menu.addItem(.separator())
-        menu.addItem(entry(Words.say("Settings…"), #selector(openSettings), key: ","))
-        menu.addItem(entry(Words.say("Check for Updates…"), #selector(checkUpdatesNow)))
-        menu.addItem(entry(Words.say("About Koe"), #selector(openSite)))
+        let submits = Words.say("Press Return after typing"), polish = Words.say("Polish the words"), sounds = Words.say("Sounds")
+        menu.addItem(row([submits], content: { [unowned self] in .init(title: submits, checked: state.submits) }) { [unowned self] in
+            state.submits.toggle()
+            state.save()
+            play(.check(state.submits))
+        })
+        menu.addItem(row([polish], content: { [unowned self] in .init(title: polish, checked: state.polish) }) { [unowned self] in
+            state.polish.toggle()
+            state.save()
+            state.polishChanged()
+            play(.check(state.polish))
+        })
+        menu.addItem(row([sounds], content: { [unowned self] in .init(title: sounds, checked: !state.muted) }) { [unowned self] in
+            // Heard both ways: the last sound before the quiet, as any toggle's.
+            if !state.muted { play(.check(false)) }
+            state.muted.toggle()
+            state.save()
+            if !state.muted { play(.check(true)) }
+        })
+        let settings = Words.say("Settings…")
+        menu.addItem(row([settings], content: { .init(title: settings) }) { [weak self] in
+            self?.closeMenu { self?.openSettings() }
+        })
+
+        menu.addItem(.separator())
+        let about = entry(Words.say("About Koe %@", Update.running), #selector(openSite))
+        menu.addItem(about)
+        menu.addItem(entry(Words.say("What's New"), #selector(openChangelog)))
+        menu.addItem(updateItem())
+        menu.addItem(entry(Words.say("Made by Gwendall"), #selector(openAuthor)))
         menu.addItem(.separator())
         menu.addItem(entry(Words.say("Quit Koe"), #selector(quit), key: "q"))
+
+        // As wide as the lines that can show while it is open; dictations are cut to it.
+        let lines = [statusLine, state.howTo, submits, polish, sounds, settings, Words.say("About Koe %@", Update.running)]
+        menu.minimumWidth = MenuRow.width(for: lines)
+    }
+
+    @objc private func clicked() { showMenu() }
+
+    // Hangs from the menu bar's bottom edge under the bubble, as a status
+    // menu does (Wham's showMenu), the bubble lit while it is open.
+    private func showMenu() {
+        guard let button = item.button, let window = button.window else { return }
+        let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        let bar = min(window.frame.minY, window.screen?.visibleFrame.maxY ?? window.frame.minY)
+        button.highlight(true)
+        menu.popUp(positioning: nil, at: NSPoint(x: frame.minX, y: bar - 6), in: nil)
+        button.highlight(false)
+    }
+
+    // A blank image as wide as the menu's check mark.
+    private static let blankState = NSImage(size: NSSize(width: 13, height: 11))
+
+    // "now", "12 min", "3 h", then the day: short, in the Mac's language.
+    private static func ago(_ date: Date, now: Date = Date()) -> String {
+        let seconds = now.timeIntervalSince(date)
+        if seconds < 60 { return Words.say("now") }
+        if seconds < 86_400 {
+            let format = DateComponentsFormatter()
+            format.unitsStyle = .abbreviated
+            format.maximumUnitCount = 1
+            format.allowedUnits = seconds < 3_600 ? [.minute] : [.hour]
+            var calendar = Calendar.current
+            calendar.locale = Words.locale
+            format.calendar = calendar
+            return format.string(from: seconds) ?? ""
+        }
+        let format = DateFormatter()
+        format.locale = Words.locale
+        format.setLocalizedDateFormatFromTemplate(seconds < 6 * 86_400 ? "EEE" : "d MMM")
+        return format.string(from: date)
+    }
+
+    // A row that keeps the menu open when clicked (MenuRow), as wide as its
+    // `titles`, read again from `content` after a click. Its action is for
+    // the keyboard: Return does the same.
+    private func row(_ titles: [String], content: @escaping @MainActor () -> MenuRow.Content,
+                     click: @escaping @MainActor () -> Void) -> NSMenuItem {
+        let view = MenuRow(content(), width: MenuRow.width(for: titles))
+        view.source = content
+        view.onClick = { [weak view] in
+            click()
+            view?.reload()
+        }
+        let item = NSMenuItem(title: view.title, action: #selector(press(_:)), keyEquivalent: "")
+        item.target = self
+        item.view = view
+        item.state = view.content.checked ? .on : .off
+        return item
+    }
+
+    @objc private func press(_ sender: NSMenuItem) {
+        (sender.view as? MenuRow)?.onClick?()
+    }
+
+    private func updateItem() -> NSMenuItem {
+        let view = UpdateRow(updateState, width: MenuRow.width(for: Line.all(running: Update.running, found: available ?? "10.10.10"), accessory: true))
+        view.onClick = { [weak self, weak view] in
+            guard let self else { return }
+            if case .offer(_) = view?.state, let version = self.available {
+                self.asked = true
+                self.install(version)
+            } else {
+                self.play(.select)
+                self.checkForUpdate(asked: true)
+            }
+            view?.state = self.updateState
+        }
+        // Its sound comes as it says how the check went.
+        view.onChange = { [weak self] state in
+            if case .done = state { self?.play(.check(true)) }
+            if case .said = state { self?.play(.refused) }
+        }
+        let item = NSMenuItem(title: view.title, action: #selector(press(_:)), keyEquivalent: "")
+        item.target = self
+        item.view = view
+        return item
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu.supermenu == nil else { return }
+        openMenu = menu
+        updateRow = menu.items.lazy.compactMap { $0.view as? UpdateRow }.first
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        for item in menu.items { (item.view as? MenuRow)?.highlighted = false }
+        guard menu.supermenu == nil else { return }
+        openMenu = nil
+        updateRow = nil
+        let waiting = afterMenu
+        afterMenu = []
+        if !waiting.isEmpty { Self.after(0.1) { for work in waiting { work() } } }
+    }
+
+    // The rows draw the menu's selection themselves.
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        for entry in menu.items {
+            guard let row = entry.view as? MenuRow else { continue }
+            row.highlighted = item.map { $0 === entry } ?? row.underPointer
+        }
+    }
+
+    // Closes the menu, then does `work` once it is gone (at once if none is open).
+    private func closeMenu(then work: @escaping @MainActor () -> Void = {}) {
+        guard let openMenu else { return work() }
+        afterMenu.append(work)
+        openMenu.cancelTracking()
     }
 
     private var statusLine: String {
@@ -850,22 +1067,6 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
-    private static func titled(_ text: String, detail: String) -> NSAttributedString {
-        let title = NSMutableAttributedString(string: text, attributes: [.font: NSFont.menuFont(ofSize: 0)])
-        title.append(NSAttributedString(string: "   " + detail, attributes: [
-            .font: NSFont.menuFont(ofSize: 0), .foregroundColor: NSColor.secondaryLabelColor,
-        ]))
-        return title
-    }
-
-    @objc private func copyDictation(_ sender: NSMenuItem) {
-        let dictations = recent
-        guard dictations.indices.contains(sender.tag) else { return }
-        Paster.copy(dictations[sender.tag].text)
-        play(.select)
-        pop(Toast.note(Words.say("COPIED"), Words.say("Paste it anywhere with ⌘V")))
-    }
-
     @objc private func openSettings() {
         state.inputs = Devices.inputs()
         state.login = SMAppService.mainApp.status == .enabled
@@ -875,8 +1076,9 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openWelcome() { Windows.showWelcome(state) }
     @objc private func retryModel() { prepareModel() }
     @objc private func retryLeftovers() { Task { await recoverLeftovers() } }
-    @objc private func checkUpdatesNow() { checkForUpdate(asked: true) }
     @objc private func openSite() { NSWorkspace.shared.open(URL(string: "https://koe.fm")!) }
+    @objc private func openChangelog() { NSWorkspace.shared.open(URL(string: "https://koe.fm/changelog")!) }
+    @objc private func openAuthor() { NSWorkspace.shared.open(URL(string: "https://gwendall.com")!) }
     @objc private func quit() { NSApp.terminate(nil) }
 
     private func setLogin(_ on: Bool) {
