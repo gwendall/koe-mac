@@ -24,7 +24,6 @@
 "NOT TYPED" = "未能输入";
 "Saved. Retry it from the menu" = "已保存，可从菜单重试";
 "NOTHING HEARD" = "什么也没听到";
-"Hold %@ and talk, let go to type" = "按住 %@ 说话，松开即输入";
 "Press %@ to talk, press it again to stop" = "按 %@ 开始说话，再按一次停止";
 "COPIED" = "已拷贝";
 "Secure typing is on" = "安全输入已打开";
@@ -102,9 +101,6 @@
 "Start Koe with" = "启动 Koe 的按键";
 "Press your shortcut…" = "请按下快捷键…";
 "fn, a modifier on its own (like right ⌥), or a combination like ⌃⌥Space. Escape cancels." = "fn、单个修饰键（如右 ⌥），或 ⌃⌥空格 这样的组合。按 Esc 取消。";
-"Mode" = "模式";
-"Hold to talk" = "按住说话";
-"Press to start and stop" = "按一下开始，再按一下停止";
 "A modifier on its own starts and stops Koe when you release it." = "单个修饰键会在松开时启动和停止 Koe。";
 "On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening." = "单独按 🌐 时，macOS 会%@。它作为 Koe 的快捷键时，Koe 会阻止这一操作。";
 "change the input source" = "切换输入法";
@@ -156,3 +152,7 @@
 "Add names and jargon to the dictionary, and Koe spells them your way." = "把名字和行话加入词典，Koe 就会按你的写法拼写。";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra 由 moondream 基于 NVIDIA Parakeet TDT 0.6B v3 打造，Core ML 版本由 FluidInference 提供。CC BY 4.0。";
 "Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "正在为这台 Mac 的神经网络引擎做准备：仅首次需要，可能要一分钟。";
+"Hold %@ to talk, or tap it to start and stop" = "按住 %@ 说话，或按一下开始、再按一下停止";
+"Koe waits in your menu bar, ready wherever you type." = "Koe 在菜单栏待命，凡是能打字的地方都能用。";
+"Start Using Koe" = "开始使用 Koe";
+"You're all set" = "一切就绪";

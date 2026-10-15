@@ -24,7 +24,7 @@ enum Shots {
             ("no-microphone", Toast.note(Words.say("NO MICROPHONE"), Words.say("Plug one in, or pick one in Settings"))),
             ("no-sound", Toast.note(Words.say("NO SOUND"), Words.say("The microphone sent nothing. Check it in Settings"))),
             ("not-typed", Toast.note(Words.say("NOT TYPED"), Words.say("Saved. Retry it from the menu"))),
-            ("nothing-heard", Toast.note(Words.say("NOTHING HEARD"), Words.say("Hold %@ and talk, let go to type", Shortcut.fn.label))),
+            ("nothing-heard", Toast.note(Words.say("NOTHING HEARD"), Words.say("Hold %@ to talk, or tap it to start and stop", Shortcut.fn.label))),
             ("nothing-heard-toggle", Toast.note(Words.say("NOTHING HEARD"), Words.say("Press %@ to talk, press it again to stop", rightOption))),
             ("nothing-heard-combo", Toast.note(Words.say("NOTHING HEARD"), Words.say("Press %@ to talk, press it again to stop", combo))),
             ("copied-secure", copied(Words.say("Secure typing is on"))),

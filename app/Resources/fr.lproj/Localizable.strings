@@ -24,7 +24,6 @@
 "NOT TYPED" = "PAS ÉCRIT";
 "Saved. Retry it from the menu" = "Gardé. Réessayez depuis le menu";
 "NOTHING HEARD" = "RIEN ENTENDU";
-"Hold %@ and talk, let go to type" = "Maintenez %@ et parlez, relâchez pour écrire";
 "Press %@ to talk, press it again to stop" = "Appuyez sur %@ pour parler, à nouveau pour arrêter";
 "COPIED" = "COPIÉ";
 "Secure typing is on" = "La saisie sécurisée est activée";
@@ -102,9 +101,6 @@
 "Start Koe with" = "Démarrer Koe avec";
 "Press your shortcut…" = "Tapez votre raccourci…";
 "fn, a modifier on its own (like right ⌥), or a combination like ⌃⌥Space. Escape cancels." = "fn, une touche de modification seule (comme ⌥ droite), ou une combinaison comme ⌃⌥Espace. Échap annule.";
-"Mode" = "Mode";
-"Hold to talk" = "Maintenir pour parler";
-"Press to start and stop" = "Appuyer pour démarrer et arrêter";
 "A modifier on its own starts and stops Koe when you release it." = "Une touche de modification seule démarre et arrête Koe quand vous la relâchez.";
 "On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening." = "Seule, la touche 🌐 servirait à %@. Tant qu’elle est le raccourci de Koe, Koe l’en empêche.";
 "change the input source" = "changer de source de saisie";
@@ -156,3 +152,7 @@
 "Add names and jargon to the dictionary, and Koe spells them your way." = "Ajoutez des noms et du jargon au dictionnaire, et Koe les écrit à votre façon.";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra par moondream, d’après NVIDIA Parakeet TDT 0.6B v3. Core ML par FluidInference. CC BY 4.0.";
 "Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "Préparation pour le Neural Engine de ce Mac : la première fois seulement, ça peut prendre une minute.";
+"Hold %@ to talk, or tap it to start and stop" = "Maintenez %@ pour parler, ou appuyez une fois pour démarrer puis arrêter";
+"Koe waits in your menu bar, ready wherever you type." = "Koe vous attend dans la barre des menus, prêt partout où vous écrivez.";
+"Start Using Koe" = "C’est parti !";
+"You're all set" = "Tout est prêt";

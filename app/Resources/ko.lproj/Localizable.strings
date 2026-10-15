@@ -24,7 +24,6 @@
 "NOT TYPED" = "입력하지 못함";
 "Saved. Retry it from the menu" = "저장했습니다. 메뉴에서 다시 시도하세요";
 "NOTHING HEARD" = "아무것도 듣지 못함";
-"Hold %@ and talk, let go to type" = "%@ 키를 누른 채 말하고, 놓으면 입력됩니다";
 "Press %@ to talk, press it again to stop" = "%@ 키를 눌러 말하고, 다시 누르면 멈춥니다";
 "COPIED" = "복사됨";
 "Secure typing is on" = "보안 입력이 켜져 있습니다";
@@ -102,9 +101,6 @@
 "Start Koe with" = "Koe 시작 키";
 "Press your shortcut…" = "단축키를 누르세요…";
 "fn, a modifier on its own (like right ⌥), or a combination like ⌃⌥Space. Escape cancels." = "fn, 보조 키 하나(오른쪽 ⌥ 등) 또는 ⌃⌥스페이스 같은 조합. Esc를 누르면 취소됩니다.";
-"Mode" = "모드";
-"Hold to talk" = "누르고 있는 동안 말하기";
-"Press to start and stop" = "눌러서 시작하고 다시 눌러서 멈추기";
 "A modifier on its own starts and stops Koe when you release it." = "보조 키 하나만 쓰면 키를 놓을 때 Koe가 시작하고 멈춥니다.";
 "On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening." = "macOS에서는 🌐 키만 누르면 %@. Koe의 단축키인 동안에는 Koe가 이를 막습니다.";
 "change the input source" = "입력 소스가 바뀝니다";
@@ -156,3 +152,7 @@
 "Add names and jargon to the dictionary, and Koe spells them your way." = "이름과 전문 용어를 사전에 추가하면 Koe가 내 방식대로 적습니다.";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra: moondream (NVIDIA Parakeet TDT 0.6B v3 기반). Core ML: FluidInference. CC BY 4.0.";
 "Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "이 Mac의 Neural Engine에 맞게 준비하는 중입니다. 처음 한 번만, 1분 정도 걸릴 수 있습니다.";
+"Hold %@ to talk, or tap it to start and stop" = "%@ 키를 누른 채 말하거나, 한 번 눌러 시작하고 다시 눌러 멈추세요";
+"Koe waits in your menu bar, ready wherever you type." = "Koe가 메뉴 막대에서 기다립니다. 글을 쓰는 곳이라면 어디서든 쓸 수 있습니다.";
+"Start Using Koe" = "Koe 사용 시작하기";
+"You're all set" = "준비 완료";

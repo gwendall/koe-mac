@@ -204,7 +204,8 @@ struct Welcome: View {
                 switch step {
                 case 0: hello
                 case 1: permissions
-                default: tryIt
+                case 2: tryIt
+                default: allSet
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -219,7 +220,7 @@ struct Welcome: View {
 
     private var dots: some View {
         HStack(spacing: 8) {
-            ForEach(0..<3) { index in
+            ForEach(0..<4) { index in
                 Circle().fill(index == step ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(Color.secondary.opacity(0.3)))
                     .frame(width: 7, height: 7)
             }
@@ -306,9 +307,9 @@ struct Welcome: View {
         VStack(alignment: .leading, spacing: 18) {
             Brand.title(Words.say("Try it"), size: 16)
             HStack(spacing: 6) {
-                Text(state.effectiveToggles ? Words.say("Click in the box, press") : Words.say("Click in the box, hold"))
+                Text(state.shortcut.forcesToggle ? Words.say("Click in the box, press") : Words.say("Click in the box, hold"))
                 Keycap(text: state.shortcut.label)
-                Text(state.effectiveToggles ? Words.say("say hello, press it again.") : Words.say("and say hello, then let go."))
+                Text(state.shortcut.forcesToggle ? Words.say("say hello, press it again.") : Words.say("and say hello, then let go."))
             }
             .font(Brand.body(14))
             TextEditor(text: $practice)
@@ -337,8 +338,12 @@ struct Welcome: View {
                     .buttonStyle(.link)
                 Spacer()
                 PillButton(title: practice.isEmpty ? Words.say("Skip") : Words.say("Done"), prominent: !practice.isEmpty) {
-                    state.finishWelcome()
-                    Windows.closeWelcome()
+                    if practice.isEmpty {
+                        state.finishWelcome()
+                        Windows.closeWelcome()
+                    } else {
+                        step = 3
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
             }
@@ -356,6 +361,99 @@ struct Welcome: View {
             }
         }
         .onDisappear { state.tryIt = nil }
+        // The first words in the box: a moment to read them, then the finale.
+        .onChange(of: practice.isEmpty) { _, empty in
+            guard !empty else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { if step == 2 { step = 3 } }
+        }
+    }
+
+    // The end: the bubble jumps for joy in a burst of pixels, up the chord.
+    private var allSet: some View {
+        AllSet(state: state) {
+            state.finishWelcome()
+            Windows.closeWelcome()
+        }
+    }
+}
+
+struct AllSet: View {
+    @ObservedObject var state: KoeState
+    let done: () -> Void
+    @State private var since = Date()
+    @State private var landed = false
+    private var still: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+    var body: some View {
+        ZStack {
+            if !still { Confetti(since: since) }
+            VStack(spacing: 18) {
+                Spacer()
+                BubbleIcon(size: 120)
+                    .scaleEffect(landed ? 1 : 0.4)
+                    .rotationEffect(.degrees(landed ? 0 : -14))
+                    .offset(y: landed ? 0 : 30)
+                Brand.title(Words.say("You're all set"), size: 24)
+                Text(Words.say("Koe waits in your menu bar, ready wherever you type."))
+                    .font(Brand.body(15))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(state.howTo)
+                    .font(Brand.body(14, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                Spacer()
+                PillButton(title: Words.say("Start Using Koe"), action: done)
+                    .keyboardShortcut(.defaultAction)
+                Spacer().frame(height: 12)
+            }
+        }
+        .onAppear {
+            since = Date()
+            state.celebrate()
+            withAnimation(still ? .easeOut(duration: 0.2) : .spring(response: 0.45, dampingFraction: 0.45)) { landed = true }
+        }
+    }
+}
+
+// A burst of pixel confetti in Koe's colors, thrown up from behind the
+// bubble and falling away in a little over two seconds.
+struct Confetti: View {
+    let since: Date
+    private static let colors: [Color] = (Pixels.candy + [Pixels.butter, Pixels.blush]).map { Color(cg: $0) }
+    private struct Bit { let angle, speed, spin, size: Double; let color: Int }
+    private static let bits: [Bit] = {
+        var seed: UInt64 = 0x4B4F45
+        func next() -> Double {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double(seed >> 33) / Double(1 << 31)
+        }
+        return (0..<70).map { _ in
+            Bit(angle: -.pi / 2 + (next() - 0.5) * 2.2, speed: 260 + next() * 320, spin: (next() - 0.5) * 12,
+                size: next() < 0.5 ? 6 : 9, color: Int(next() * 5) % 5)
+        }
+    }()
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let t = context.date.timeIntervalSince(since)
+            Canvas { canvas, size in
+                guard t < 2.6 else { return }
+                let origin = CGPoint(x: size.width / 2, y: size.height * 0.36)
+                for bit in Self.bits {
+                    let x = origin.x + cos(bit.angle) * bit.speed * t
+                    let y = origin.y + sin(bit.angle) * bit.speed * t + 520 * t * t
+                    var square = canvas
+                    square.opacity = max(0, 1 - t / 2.6)
+                    square.translateBy(x: x, y: y)
+                    square.rotate(by: .radians(bit.spin * t))
+                    square.fill(Path(CGRect(x: -bit.size / 2, y: -bit.size / 2, width: bit.size, height: bit.size)),
+                                with: .color(Self.colors[bit.color]))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -434,11 +532,7 @@ struct SettingsView: View {
                 if let error = state.captureError {
                     Text(error).font(Brand.body(11)).foregroundStyle(.red)
                 }
-                Picker(Words.say("Mode"), selection: Binding(get: { state.effectiveToggles }, set: { state.toggles = $0 })) {
-                    Text(Words.say("Hold to talk")).tag(false)
-                    Text(Words.say("Press to start and stop")).tag(true)
-                }
-                .disabled(state.shortcut.forcesToggle)
+                Text(state.howTo).font(Brand.body(11)).foregroundStyle(.secondary)
                 if state.shortcut.forcesToggle {
                     Text(Words.say("A modifier on its own starts and stops Koe when you release it."))
                         .font(Brand.body(11)).foregroundStyle(.secondary)
@@ -517,7 +611,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .tint(Color(cg: Pixels.candy[0]))
-        .onChange(of: state.toggles) { state.save() }
         .onChange(of: state.submits) { state.save() }
         .onChange(of: state.keepsRecent) { state.save() }
         .onChange(of: state.muted) { state.save() }

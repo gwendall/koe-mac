@@ -24,7 +24,6 @@
 "NOT TYPED" = "NÃO DIGITADO";
 "Saved. Retry it from the menu" = "Salvo. Tente de novo pelo menu";
 "NOTHING HEARD" = "NADA FOI OUVIDO";
-"Hold %@ and talk, let go to type" = "Segure %@ e fale, solte para digitar";
 "Press %@ to talk, press it again to stop" = "Pressione %@ para falar e de novo para parar";
 "COPIED" = "COPIADO";
 "Secure typing is on" = "A entrada segura está ativada";
@@ -102,9 +101,6 @@
 "Start Koe with" = "Iniciar o Koe com";
 "Press your shortcut…" = "Pressione o seu atalho…";
 "fn, a modifier on its own (like right ⌥), or a combination like ⌃⌥Space. Escape cancels." = "fn, uma tecla modificadora sozinha (como ⌥ da direita) ou uma combinação como ⌃⌥Espaço. Esc cancela.";
-"Mode" = "Modo";
-"Hold to talk" = "Segurar para falar";
-"Press to start and stop" = "Pressionar para iniciar e parar";
 "A modifier on its own starts and stops Koe when you release it." = "Uma tecla modificadora sozinha inicia e para o Koe quando você a solta.";
 "On its own, macOS would %@ with 🌐. While it is Koe's shortcut, Koe keeps that from happening." = "Sozinha, no macOS a tecla 🌐 serviria para %@. Enquanto ela for o atalho do Koe, o Koe impede isso.";
 "change the input source" = "alterar a fonte de entrada";
@@ -156,3 +152,7 @@
 "Add names and jargon to the dictionary, and Koe spells them your way." = "Adicione nomes e jargões ao dicionário, e o Koe escreve do seu jeito.";
 "Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0." = "Parakeet Ultra da moondream, a partir do NVIDIA Parakeet TDT 0.6B v3. Core ML da FluidInference. CC BY 4.0.";
 "Preparing it for this Mac's Neural Engine: the first time only, it can take a minute." = "Preparando para o Neural Engine deste Mac: só na primeira vez, pode levar um minuto.";
+"Hold %@ to talk, or tap it to start and stop" = "Segure %@ para falar, ou toque uma vez para começar e parar";
+"Koe waits in your menu bar, ready wherever you type." = "O Koe espera por você na barra de menus, pronto onde quer que você escreva.";
+"Start Using Koe" = "Começar a usar o Koe";
+"You're all set" = "Tudo pronto";

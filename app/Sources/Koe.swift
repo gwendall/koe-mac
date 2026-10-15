@@ -41,6 +41,9 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // Nothing longer than this: memory stays bounded, and Koe never listens forever.
     private static let longest: TimeInterval = 30 * 60
+    // Shorter than this, a press is a tap: hands-free until the next one.
+    private static let tap: TimeInterval = 0.4
+    private var latched = false
     // Where Koe typed last, and the keyboard's count of keys and clicks then.
     private var lastTyped: (pid: pid_t, touches: Int, end: Character)?
     private var trustTimer: Timer?
@@ -143,6 +146,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.setLogin = { [weak self] on in self?.setLogin(on) }
         state.copyReport = { [weak self] in self?.copyReport() }
         state.finishWelcome = { UserDefaults.standard.set(true, forKey: "welcomed") }
+        state.celebrate = { [weak self] in self?.play(.hooray) }
         state.login = SMAppService.mainApp.status == .enabled
         state.inputs = Devices.inputs()
     }
@@ -179,7 +183,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.recorder.feed(URL(fileURLWithPath: parts[0])) { [weak self] in
                     guard let self else { return }
                     if parts.count > 1, parts[1] == "escape" { self.hotkey.onEscape?() }
-                    else if self.state.effectiveToggles { self.hotkey.onDown?() } else { self.hotkey.onUp?() }
+                    else if self.latched || self.state.shortcut.forcesToggle { self.hotkey.onDown?() } else { self.hotkey.onUp?() }
                 }
             default: break
             }
@@ -190,13 +194,19 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func shortcutDown() {
         switch phase {
         case .idle: start()
-        case .listening where state.effectiveToggles: finish()
+        case .listening where latched || state.shortcut.forcesToggle: finish()
         default: break // one dictation at a time; still typing the last one
         }
     }
 
+    // Up within a tap of going down: Koe goes on listening, hands free, until
+    // the next press. Held longer: the dictation ends here.
     private func shortcutUp() {
-        guard phase == .listening, !state.effectiveToggles else { return }
+        guard phase == .listening, !latched, !state.shortcut.forcesToggle else { return }
+        if Date().timeIntervalSince(startedAt) < Self.tap {
+            latched = true
+            return
+        }
         finish()
     }
 
@@ -269,6 +279,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         startedAt = Date()
         lastHeard = Date()
         warnedSilence = false
+        latched = false
         phase = .listening
         resetFace?.cancel()
         show(Pixels.listening)
@@ -796,7 +807,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func copyReport() {
         let report = Log.report([
             "shortcut": state.shortcut.kind.rawValue,
-            "mode": state.effectiveToggles ? "toggle" : "hold",
+            "mode": state.shortcut.forcesToggle ? "toggle" : "hold or tap",
             "microphone permission": "\(state.microphone.map { $0 ? "on" : "off" } ?? "not asked")",
             "accessibility": state.accessibility ? "on" : "off",
             "keyboard listener": hotkey.isRunning ? "running" : "stopped",

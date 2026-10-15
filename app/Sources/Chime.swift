@@ -12,8 +12,9 @@ enum Chime {
         case check(Bool)  // a menu option checked, or unchecked
         case select       // a menu value picked, a dictation copied
         case refused      // not now: out of the key
+        case hooray       // the welcome's end: all set, up the chord and over
 
-        static let all: [Sound] = [.start, .stop, .check(true), .check(false), .select, .refused]
+        static let all: [Sound] = [.start, .stop, .check(true), .check(false), .select, .refused, .hooray]
 
         var name: String {
             switch self {
@@ -22,6 +23,7 @@ enum Chime {
             case .check(let on): return on ? "check" : "uncheck"
             case .select: return "select"
             case .refused: return "refused"
+            case .hooray: return "hooray"
             }
         }
     }
@@ -38,6 +40,8 @@ enum Chime {
         case .select: return notes([7], gap: 0.04, ring: 0.05, peak: 0.1)
         // E5 down to D#5, out of the key: no.
         case .refused: return notes([-5, -6], gap: 0.07, ring: 0.09, peak: 0.1)
+        // A major up two octaves, A5 to A7, the top one left to ring.
+        case .hooray: return notes([0, 4, 7, 12, 16, 19, 24], gap: 0.065, ring: 0.45, peak: 0.13)
         }
     }
 

@@ -20,7 +20,6 @@ final class KoeState: ObservableObject {
     @Published var capturing = false
     @Published var captureError: String?
     // Options.
-    @Published var toggles = UserDefaults.standard.bool(forKey: "toggles")
     @Published var submits = UserDefaults.standard.bool(forKey: "submits")
     @Published var keepsRecent = !UserDefaults.standard.bool(forKey: "forgetRecent")
     @Published var muted = UserDefaults.standard.bool(forKey: "muted")
@@ -42,22 +41,21 @@ final class KoeState: ObservableObject {
     var setLogin: (Bool) -> Void = { _ in }
     var copyReport: () -> Void = {}
     var finishWelcome: () -> Void = {}
+    var celebrate: () -> Void = {}
     // Set while the welcome's try-it box is on screen: the words go there.
     var tryIt: ((String) -> Void)?
 
-    // The mode actually used: a modifier alone always toggles.
-    var effectiveToggles: Bool { toggles || shortcut.forcesToggle }
-
-    // How to start Koe, in words: "Hold fn and talk".
+    // How to start Koe, in words. Held, the shortcut talks until it comes
+    // up; tapped, until it is tapped again. A modifier on its own fires on
+    // release, so it can only be tapped.
     var howTo: String {
-        effectiveToggles
+        shortcut.forcesToggle
             ? Words.say("Press %@ to talk, press it again to stop", shortcut.label)
-            : Words.say("Hold %@ and talk, let go to type", shortcut.label)
+            : Words.say("Hold %@ to talk, or tap it to start and stop", shortcut.label)
     }
 
     func save() {
         let defaults = UserDefaults.standard
-        defaults.set(toggles, forKey: "toggles")
         defaults.set(submits, forKey: "submits")
         defaults.set(!keepsRecent, forKey: "forgetRecent")
         defaults.set(muted, forKey: "muted")
