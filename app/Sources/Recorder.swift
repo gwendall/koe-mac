@@ -29,6 +29,7 @@ final class Recorder {
     }
 
     func start() throws {
+        feeding = false
         lock.lock(); samples.removeAll(keepingCapacity: true); lock.unlock()
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -72,7 +73,7 @@ final class Recorder {
     }
 
     private func take(_ buffer: AVAudioPCMBuffer) {
-        guard let converter else { return }
+        guard let converter, !feeding else { return }
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * target.sampleRate / buffer.format.sampleRate + 64)
         guard let out = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return }
         var fed = false
@@ -88,6 +89,10 @@ final class Recorder {
         }
         guard error == nil, let data = out.floatChannelData?[0], out.frameLength > 0 else { return }
         let chunk = Array(UnsafeBufferPointer(start: data, count: Int(out.frameLength)))
+        heard(chunk)
+    }
+
+    private func heard(_ chunk: [Float]) {
         lock.lock(); samples.append(contentsOf: chunk); lock.unlock()
         onSamples?(chunk)
 
@@ -101,6 +106,37 @@ final class Recorder {
     // A microphone that sent nothing at all: over 2 s and flat zero. Never
     // a judgment on a quiet voice (a soft 167 s dictation at RMS 0.0088 was
     // once thrown away by a stricter rule).
+    // Eval builds only: a sound file heard in place of the microphone, at
+    // its own pace, for end-to-end runs that make no sound in the room.
+    private var feeding = false
+
+    #if KOE_EVAL
+    func feed(_ url: URL) {
+        guard engine != nil, let file = try? AVAudioFile(forReading: url),
+              let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buffer)) != nil,
+              let converter = AVAudioConverter(from: file.processingFormat, to: target),
+              let out = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: AVAudioFrameCount(Double(file.length) * 16_000 / file.processingFormat.sampleRate + 1024))
+        else { return }
+        var fed = false
+        converter.convert(to: out, error: nil) { _, status in
+            if fed { status.pointee = .endOfStream; return nil }
+            fed = true
+            status.pointee = .haveData
+            return buffer
+        }
+        guard let data = out.floatChannelData?[0] else { return }
+        let all = Array(UnsafeBufferPointer(start: data, count: Int(out.frameLength)))
+        feeding = true
+        DispatchQueue.global().async { [weak self] in
+            for start in stride(from: 0, to: all.count, by: 1_600) {
+                self?.heard(Array(all[start..<min(start + 1_600, all.count)]))
+                Thread.sleep(forTimeInterval: 0.1)
+            }
+        }
+    }
+    #endif
+
     static func isSilent(_ samples: [Float]) -> Bool {
         guard samples.count > 32_000 else { return false }
         var sum: Float = 0, peak: Float = 0

@@ -21,18 +21,31 @@ fi
 build_number=$(git rev-list --count HEAD 2>/dev/null || echo 1)
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$plist"
 
-swift build -c release --arch arm64 --force-resolved-versions
+# KOE_EVAL=1: adds the eval door (Koe.swift); never for a release.
+eval_flags=
+[ "${KOE_EVAL:-}" = 1 ] && eval_flags="-Xswiftc -DKOE_EVAL"
+# shellcheck disable=SC2086
+swift build -c release --arch arm64 --force-resolved-versions $eval_flags
 cp .build/arm64-apple-macosx/release/Koe "$APP/Contents/MacOS/Koe"
 swift scripts/icon.swift "$APP/Contents/Resources" >/dev/null
 rm -f "$APP/Contents/Resources/icon-1024.png"
 
 identity=${SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)}
+# No Developer ID: a local self-signed "Koe Local Development" certificate,
+# if this Mac has one, keeps macOS's permissions across rebuilds (an ad hoc
+# signature is a new app to macOS each time).
+if [ -z "$identity" ] && security find-identity -p codesigning | grep -q '"Koe Local Development"'; then
+  codesign --force --options runtime --entitlements app/Koe.entitlements --sign "Koe Local Development" --identifier fm.koe.mac "$APP"
+  codesign --verify --deep --strict "$APP" 2>/dev/null || true
+  echo "built $APP (signed with Koe Local Development: permissions survive rebuilds)"
+  exit 0
+fi
 if [ -z "$identity" ] || [ "$identity" = "-" ]; then
   codesign --force --sign - --identifier fm.koe.mac "$APP"
   echo "built $APP (signed ad hoc: runs on this Mac only)"
 else
   for attempt in 1 2 3; do
-    codesign --force --options runtime --timestamp --sign "$identity" "$APP" && break
+    codesign --force --options runtime --timestamp --entitlements app/Koe.entitlements --sign "$identity" "$APP" && break
     [ "$attempt" = 3 ] && exit 1
     echo "signing failed, retrying in 10 s"
     sleep 10

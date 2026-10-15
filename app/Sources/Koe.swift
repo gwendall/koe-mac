@@ -111,16 +111,23 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.askMicrophone = { [weak self] in
             Recorder.askPermission { _ in self?.checkPermissions() }
         }
-        state.openMicrophoneSettings = {
+        state.openMicrophoneSettings = { [weak self] in
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+            self?.stepAside()
         }
         state.openAccessibility = { [weak self] in
-            // Puts Koe in the list, so it can be switched on.
+            // Puts Koe in the list, with macOS's own dialog, whose button
+            // opens it. macOS shows that dialog only once: when it does not
+            // come, the list is opened here, so there is always something in
+            // front of you to switch on, and never both.
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            if !AXIsProcessTrustedWithOptions(options) {
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+            _ = AXIsProcessTrustedWithOptions(options)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                if !Self.accessibilityDialogShown {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                }
             }
-            self?.watchPermissions()
+            self?.stepAside()
         }
         state.startCapture = { [weak self] in self?.captureShortcut() }
         state.cancelCapture = { [weak self] in self?.hotkey.cancelCapture() }
@@ -144,6 +151,21 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.cancel(quietly: true)
         }
         hotkey.onEscape = { [weak self] in self?.cancel(quietly: false) }
+        #if KOE_EVAL
+        // Eval builds only (KOE_EVAL=1 scripts/build.sh): the shortcut and
+        // Escape, pressed from outside, for end-to-end runs without a hand
+        // on the keyboard. Never in a release.
+        let center = DistributedNotificationCenter.default()
+        for (name, act) in [("down", hotkey.onDown), ("up", hotkey.onUp), ("escape", hotkey.onEscape)] {
+            center.addObserver(forName: Notification.Name("fm.koe.mac.eval.\(name)"), object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { act?() }
+            }
+        }
+        center.addObserver(forName: Notification.Name("fm.koe.mac.eval.feed"), object: nil, queue: .main) { [weak self] note in
+            guard let path = note.object as? String else { return }
+            MainActor.assumeIsolated { self?.recorder.feed(URL(fileURLWithPath: path)) }
+        }
+        #endif
     }
 
     private func shortcutDown() {
@@ -335,8 +357,13 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let result: Paster.Result
-        if NSApp.isActive, let field = NSApp.keyWindow?.firstResponder as? NSTextView, field.isEditable {
-            // Koe's own window (the welcome's try-it box).
+        let koeInFront = NSApp.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
+        if koeInFront, let tryIt = state.tryIt {
+            // The welcome's try-it box, on screen with Koe in front.
+            tryIt(text)
+            result = .typed
+        } else if koeInFront, let field = NSApp.keyWindow?.firstResponder as? NSTextView, field.isEditable {
+            // Another of Koe's own fields (the dictionary, in the settings).
             field.insertText(text + " ", replacementRange: field.selectedRange())
             result = .typed
         } else {
@@ -445,6 +472,37 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.inputs = Devices.inputs()
     }
 
+    // macOS's "would like to control this Mac" dialog, on screen.
+    private static var accessibilityDialogShown: Bool {
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        return windows.contains { ($0[kCGWindowOwnerName as String] as? String) == "universalAccessAuthWarn" }
+    }
+
+    // While you are in System Settings, Koe's windows stay out of the way:
+    // they would hide the list, and the Touch ID prompt that comes with it.
+
+    // (NSApp.hide leaves a menu bar app's windows on screen: they are taken
+    // off it instead.)
+    private var steppedAside: NSWindow?
+
+    private func stepAside() {
+        guard let window = [Windows.welcomeWindow, Windows.settingsWindow].compactMap({ $0 }).first(where: \.isVisible) else { return }
+        steppedAside = window
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            if self?.steppedAside === window { window.orderOut(nil) }
+        }
+        watchPermissions()
+    }
+
+    // A permission just came on, or System Settings was closed: back.
+    private func comeBack(gained: Bool) {
+        if gained { play(.check(true)) }
+        guard let window = steppedAside else { return }
+        steppedAside = nil
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
     // Every 1.5 s until both permissions are on: no relaunch needed.
     private func watchPermissions() {
         guard permissionTimer == nil else { return }
@@ -453,10 +511,16 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self else { return timer.invalidate() }
                 let before = (self.state.microphone, self.state.accessibility)
                 self.checkPermissions()
-                if self.state.microphone == true, self.state.accessibility {
+                let gained = (before.0 != true && self.state.microphone == true) || (!before.1 && self.state.accessibility)
+                if gained {
+                    self.comeBack(gained: true)
+                } else if self.steppedAside != nil,
+                          NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences").isEmpty {
+                    self.comeBack(gained: false)
+                }
+                if self.state.microphone == true, self.state.accessibility, self.steppedAside == nil {
                     timer.invalidate()
                     self.permissionTimer = nil
-                    if before.1 == false { self.play(.check(true)) }
                 }
             }
         }

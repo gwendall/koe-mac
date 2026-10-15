@@ -40,6 +40,8 @@ final class KoeState: ObservableObject {
     var setLogin: (Bool) -> Void = { _ in }
     var copyReport: () -> Void = {}
     var finishWelcome: () -> Void = {}
+    // Set while the welcome's try-it box is on screen: the words go there.
+    var tryIt: ((String) -> Void)?
 
     // The mode actually used: a modifier alone always toggles.
     var effectiveToggles: Bool { toggles || shortcut.forcesToggle }

@@ -327,7 +327,18 @@ struct Welcome: View {
             }
             .padding(.bottom, 8)
         }
-        .onAppear { practiceFocused = true }
+        .onAppear {
+            // The box must be where the words go, even when the step was
+            // reached with Koe in the background.
+            NSApp.activate(ignoringOtherApps: true)
+            Windows.welcomeWindow?.makeKeyAndOrderFront(nil)
+            practiceFocused = true
+            state.tryIt = { text in
+                practice += (practice.isEmpty || practice.hasSuffix(" ") ? "" : " ") + text + " "
+                practiceFocused = true
+            }
+        }
+        .onDisappear { state.tryIt = nil }
     }
 }
 

@@ -54,7 +54,8 @@ enum Target {
         guard let app = origin.app, !app.isTerminated else { return .nowhere(Words.say("No text field in front")) }
         app.activate()
         RunLoop.current.run(until: Date().addingTimeInterval(0.12))
-        return inspect(app) ?? .unknown(app)
+        // The app answered: nothing focused. A blind ⌘V would lose the words.
+        return inspect(app) ?? .nowhere(Words.say("No text field in front"))
     }
 
     // What the app's focused element is: a field, a field that cannot take
@@ -81,6 +82,19 @@ enum Target {
     }
 
     nonisolated static func value(of element: AXUIElement) -> String? { string(element, kAXValueAttribute) }
+
+    // The character just before the cursor, when the field says.
+    nonisolated static func characterBeforeCursor(in element: AXUIElement) -> Character? {
+        guard let text = value(of: element) else { return nil }
+        var range: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range) == .success,
+              let range, CFGetTypeID(range) == AXValueGetTypeID() else { return nil }
+        var cursor = CFRange()
+        guard AXValueGetValue(range as! AXValue, .cfRange, &cursor), cursor.location > 0 else { return nil }
+        let utf16 = Array(text.utf16)
+        guard cursor.location <= utf16.count else { return nil }
+        return String(utf16CodeUnits: [utf16[cursor.location - 1]], count: 1).first
+    }
 
     nonisolated private static func string(_ element: AXUIElement, _ attribute: String) -> String? {
         var value: CFTypeRef?
