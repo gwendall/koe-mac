@@ -404,10 +404,10 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.note("delivered", ["result": "\(result)".components(separatedBy: "(").first ?? "?"])
         switch result {
         case .typed, .probably:
-            // The words showing up say it; the check and the sound confirm.
+            // The words showing up say it, and the check: no sound, as one
+            // after every dictation would soon wear.
             indicator.done()
             show(Pixels.typed)
-            play(.typed)
         case .copied(let why):
             Log.note("copied", ["why": why])
             indicator.hide()

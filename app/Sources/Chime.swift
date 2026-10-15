@@ -9,18 +9,16 @@ enum Chime {
     enum Sound: Hashable {
         case start        // Koe starts listening: two notes up
         case stop         // it stops: the same two, down
-        case typed        // the words are in: one high tick
         case check(Bool)  // a menu option checked, or unchecked
         case select       // a menu value picked, a dictation copied
         case refused      // not now: out of the key
 
-        static let all: [Sound] = [.start, .stop, .typed, .check(true), .check(false), .select, .refused]
+        static let all: [Sound] = [.start, .stop, .check(true), .check(false), .select, .refused]
 
         var name: String {
             switch self {
             case .start: return "start"
             case .stop: return "stop"
-            case .typed: return "typed"
             case .check(let on): return on ? "check" : "uncheck"
             case .select: return "select"
             case .refused: return "refused"
@@ -34,7 +32,6 @@ enum Chime {
         case .start: return notes([0, 7], gap: 0.05, ring: 0.1, peak: 0.16)
         case .stop: return notes([7, 0], gap: 0.05, ring: 0.09, peak: 0.13)
         // A6.
-        case .typed: return notes([12], gap: 0.04, ring: 0.07, peak: 0.12)
         // C#6 to A6, up, or down.
         case .check(let on): return on ? notes([4, 12], gap: 0.04, ring: 0.08, peak: 0.1) : notes([12, 4], gap: 0.04, ring: 0.07, peak: 0.08)
         // One E6.
