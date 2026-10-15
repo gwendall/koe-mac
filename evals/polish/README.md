@@ -25,7 +25,12 @@ transcript scores 0.896. "Trap answered" is how often a model replied to a
 question or an instruction instead of cleaning it (Koe then keeps the
 transcript). See `report.md` for the run behind the choice: the rules alone
 (0.931, no latency) always, and Qwen3.5 2B Q4_K_M after them when switched on
-(0.957, every right text kept intact, about 90 ms; Gemma 4 E2B scored 0.968
-but weighs 3.3 GB, Apple's model 0.956 at 470 ms). `report-first-prompt.md`
+(0.957, every right text kept intact, about 90 ms, the fewest traps
+answered). A second round of smaller models: Llama 3.2 1B matches it (0.954)
+at 0.8 GB and 37 ms but answers three times as many traps; Phi-4-mini (0.972,
+2.5 GB), Gemma 3n and 4 E2B (0.971 and 0.968, 3 GB and more), SmolLM3 3B
+(0.966, 1.9 GB) score higher for their weight; below a billion parameters
+(Granite 350M, SmolLM2 360M, Apple's OpenELM 270M) models spoil right text
+or answer it. Apple's on-device model: 0.956 at 470 ms. `report-first-prompt.md`
 is the first prompt's run, before the dictionary and the transcript were
 framed as data.
