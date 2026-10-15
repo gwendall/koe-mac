@@ -15,7 +15,11 @@ import CoreGraphics
 // - Escape cancels while Koe listens or types, and only then is kept from
 //   the app in front.
 // Needs Accessibility. macOS switches the tap off when it is slow or when
-// Accessibility is revoked: it is switched back on, or rebuilt.
+// Accessibility is revoked: it is switched back on, or rebuilt. Only the
+// keyboard goes through a tap that can hold events back; clicks and scrolls
+// are only watched (a listen-only tap), so a Koe in trouble can never take
+// the mouse away. And Koe lets go of the keyboard the moment it loses
+// Accessibility (Koe.swift, `guardTrust`).
 @MainActor
 final class Hotkey {
     var shortcut = Shortcut.saved { didSet { reset() } }
@@ -34,6 +38,8 @@ final class Hotkey {
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
+    private var watch: CFMachPort?
+    private var watchSource: CFRunLoopSource?
     // fn and combination state, and a modifier tap still clean.
     fileprivate var fnDown = false
     private var comboDown = false
@@ -53,27 +59,36 @@ final class Hotkey {
     func start() -> Bool {
         if let tap, CFMachPortIsValid(tap) { return true }
         stop()
-        var mask: CGEventMask = 0
-        for type: CGEventType in [.flagsChanged, .keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, Self.systemDefined] {
-            mask |= 1 << CGEventMask(type.rawValue)
-        }
+        func mask(_ types: [CGEventType]) -> CGEventMask { types.reduce(0) { $0 | 1 << CGEventMask($1.rawValue) } }
+        let me = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
-                                          eventsOfInterest: mask, callback: hotkeyEvent,
-                                          userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
+                                          eventsOfInterest: mask([.flagsChanged, .keyDown, .keyUp, Self.systemDefined]),
+                                          callback: hotkeyEvent, userInfo: me) else { return false }
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
         self.source = source
+        if let watch = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap, options: .listenOnly,
+                                         eventsOfInterest: mask([.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]),
+                                         callback: hotkeyEvent, userInfo: me) {
+            let watchSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, watch, 0)
+            CFRunLoopAddSource(CFRunLoopGetMain(), watchSource, .commonModes)
+            CGEvent.tapEnable(tap: watch, enable: true)
+            self.watch = watch
+            self.watchSource = watchSource
+        }
         reset()
         return true
     }
 
     func stop() {
-        if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
-        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        for port in [tap, watch].compactMap({ $0 }) { CGEvent.tapEnable(tap: port, enable: false); CFMachPortInvalidate(port) }
+        for loop in [source, watchSource].compactMap({ $0 }) { CFRunLoopRemoveSource(CFRunLoopGetMain(), loop, .commonModes) }
         tap = nil
         source = nil
+        watch = nil
+        watchSource = nil
     }
 
     // Starts listening for a new shortcut; `done` gets it, or nil if cancelled.
@@ -91,7 +106,7 @@ final class Hotkey {
     }
 
     fileprivate func reenable() {
-        if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+        for port in [tap, watch].compactMap({ $0 }) { CGEvent.tapEnable(tap: port, enable: true) }
         reset()
     }
 

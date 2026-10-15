@@ -43,6 +43,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private static let longest: TimeInterval = 30 * 60
     // Where Koe typed last, and the keyboard's count of keys and clicks then.
     private var lastTyped: (pid: pid_t, touches: Int, end: Character)?
+    private var trustTimer: Timer?
     #if KOE_EVAL
     private var evalDoor: EvalDoor?
     #endif
@@ -90,6 +91,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         checkPermissions()
         watchPermissions()
+        guardTrust()
         prepareModel()
         scheduleUpdates()
 
@@ -545,6 +547,24 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // Every 1.5 s until both permissions are on: no relaunch needed.
+    // Every 2 s, while Koe holds the keyboard: still allowed to? Accessibility
+    // switched off, or the app replaced on disk under a running Koe (a new
+    // build), leaves a tap macOS no longer trusts, and the keys it hands back
+    // are refused: the Mac stops answering. Koe lets go at once, and takes the
+    // keyboard back when Accessibility does.
+    private func guardTrust() {
+        trustTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.hotkey.isRunning else { return }
+                guard !AXIsProcessTrusted() || !CGPreflightPostEventAccess() else { return }
+                self.hotkey.stop()
+                self.state.accessibility = false
+                Log.note("accessibility", ["lost": true])
+                self.watchPermissions()
+            }
+        }
+    }
+
     private func watchPermissions() {
         guard permissionTimer == nil else { return }
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] timer in

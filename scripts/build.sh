@@ -8,7 +8,14 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-APP=build/Koe.app
+# APP=<path>.app builds elsewhere (scripts/test.sh does, beside a Koe in use).
+APP=${APP:-build/Koe.app}
+# Never under a running Koe: macOS would stop trusting it while it still holds
+# the keyboard, and the Mac would stop answering keys and clicks.
+if pgrep -f "$(pwd)/$APP/Contents/MacOS/Koe" >/dev/null 2>&1 || pgrep -f "^$APP/Contents/MacOS/Koe" >/dev/null 2>&1; then
+  echo "build: $APP is running. Quit Koe first (or set APP= to build elsewhere)." >&2
+  exit 1
+fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp app/Info.plist "$APP/Contents/Info.plist"

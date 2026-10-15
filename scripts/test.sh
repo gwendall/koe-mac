@@ -6,8 +6,9 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-SIGN=- scripts/build.sh >/dev/null
-build/Koe.app/Contents/MacOS/Koe --self-test
+# Its own copy: never the Koe that may be running from build/Koe.app.
+APP=build/test/Koe.app SIGN=- scripts/build.sh >/dev/null
+build/test/Koe.app/Contents/MacOS/Koe --self-test
 scripts/strings-check.sh
 
 for script in install.sh uninstall.sh scripts/*.sh; do
