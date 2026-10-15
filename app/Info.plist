@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Koe</string>
+	<key>CFBundleExecutable</key>
+	<string>Koe</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>fm.koe.mac</string>
+	<key>CFBundleName</key>
+	<string>Koe</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Koe hears you only while you hold fn, and turns your words into text on this Mac.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>From The Atelier. MIT License. Speech model: Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3, Core ML by FluidInference (CC BY 4.0).</string>
+</dict>
+</plist>
