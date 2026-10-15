@@ -126,10 +126,27 @@ final class Indicator {
         CATransaction.commit()
     }
 
-    // The words being worked out: a wave runs through the bars.
-    func work() {
+    // The key is up: the bars lie down in ink. Words come in about a tenth
+    // of a second, and a wave for that would only flicker; it runs only when
+    // they take longer (`after`), a long dictation's.
+    func work(after delay: TimeInterval = 0.5) {
         guard !bars.isEmpty else { return }
         working = true
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.12)
+        for bar in bars {
+            bar.backgroundColor = Pixels.ink
+            bar.bounds.size.height = Self.barRest
+        }
+        CATransaction.commit()
+        let current = generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, self.generation == current, self.working, !self.bars.isEmpty else { return }
+            self.wave()
+        }
+    }
+
+    private func wave() {
         let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let now = CACurrentMediaTime()
         CATransaction.begin()
@@ -176,6 +193,7 @@ final class Indicator {
         Motion.basic(mark, "opacity", from: 0, to: 1, at: now + 0.05, duration: 0.1)
         CATransaction.commit()
         bars = []
+        working = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self, self.generation == current else { return }
             self.hide()

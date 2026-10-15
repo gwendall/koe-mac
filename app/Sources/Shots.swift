@@ -50,8 +50,8 @@ enum Shots {
         let moments: [(String, (Indicator) -> Void)] = [
             ("indicator-1-waiting", { _ in }),
             ("indicator-2-listening", { $0.setLevel(0.75) }),
-            ("indicator-3-working", { $0.work() }),
-            ("indicator-4-done", { $0.work(); $0.done() }),
+            ("indicator-3-working", { $0.work(after: 0) }),
+            ("indicator-4-done", { $0.work(after: 0); $0.done() }),
         ]
         for (name, moment) in moments {
             let indicator = Indicator()
