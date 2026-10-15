@@ -61,6 +61,10 @@ final class Toast {
     private var liveCaption: CALayer?
     private var liveInk: CGColor?
     private var liveScale: CGFloat = 2
+    private var livePill: CALayer?
+    private var liveHalo: CALayer?
+    private var liveText: CGFloat = 0 // the title's width, or the text's left edge to the bars
+    private var liveFixed: CGFloat = 0 // everything but the text
     private static let barCount = 5, barWidth: CGFloat = 4, barGap: CGFloat = 3, barMax: CGFloat = 22
     // Each bar's share of the level, so they move as a voice does, not in step.
     private static let barShape: [CGFloat] = [0.55, 0.9, 1, 0.75, 0.5]
@@ -96,13 +100,16 @@ final class Toast {
         let padLeft = (Self.height - icon) / 2, gap: CGFloat = 11, padRight: CGFloat = 20
         let height = Self.height
         let barsWidth = style.live ? CGFloat(Self.barCount) * Self.barWidth + CGFloat(Self.barCount - 1) * Self.barGap + 14 : 0
-        // The live pill keeps room for its longest line, "No sound…".
+        let fixed = padLeft + icon + gap + barsWidth + padRight
+        let width = fixed + max(titleWidth, caption?.size.width ?? 0)
+        // The pill fits its words; the live one can grow into "No sound…" later,
+        // so its window keeps room for that line around it.
         let reserve = style.live ? Self.textImage(Words.say("No sound: check your microphone"), font: Self.captionFont,
                                                   color: style.captionInk, scale: scale, crisp: false)?.size.width ?? 0 : 0
-        let width = padLeft + icon + gap + max(titleWidth, caption?.size.width ?? 0, reserve) + barsWidth + padRight
+        let room = max(width, fixed + reserve)
 
         // Place the pill just under the bubble, inside the screen.
-        let size = NSSize(width: width + 2 * Self.margin, height: height + 2 * Self.margin)
+        let size = NSSize(width: room + 2 * Self.margin, height: height + 2 * Self.margin)
         var origin = NSPoint(x: (anchor.midX - size.width / 2).rounded(), y: anchor.minY - 6 - height - Self.margin)
         if let screen = NSScreen.screens.first(where: { $0.frame.intersects(anchor) }) {
             origin.x = min(max(origin.x, screen.frame.minX - Self.margin + 8), screen.frame.maxX - size.width + Self.margin - 8)
@@ -121,6 +128,7 @@ final class Toast {
         root.addSublayer(stage)
 
         let radius = height / 2
+        var haloLayer: CALayer?
         if let glow = style.glow {
             let halo = CALayer()
             halo.frame = stage.bounds
@@ -130,6 +138,7 @@ final class Toast {
             halo.shadowRadius = 13
             halo.shadowOffset = .zero
             stage.addSublayer(halo)
+            haloLayer = halo
         }
         let pill = CAGradientLayer()
         pill.frame = stage.bounds
@@ -183,6 +192,10 @@ final class Toast {
         }
         bars = []
         liveStage = style.live ? stage : nil
+        livePill = style.live ? pill : nil
+        liveHalo = style.live ? haloLayer : nil
+        liveText = titleWidth
+        liveFixed = fixed
         if style.live {
             var x = width - padRight - CGFloat(Self.barCount) * Self.barWidth - CGFloat(Self.barCount - 1) * Self.barGap
             for _ in 0..<Self.barCount {
@@ -260,14 +273,31 @@ final class Toast {
         CATransaction.commit()
     }
 
-    // A new line under the live pill's title ("No sound…").
+    // A new line under the live pill's title ("No sound…"). The pill grows
+    // or shrinks to it, from its middle, the bars riding its right end.
     func setCaption(_ text: String) {
-        guard let layer = liveCaption, let ink = liveInk,
+        guard let layer = liveCaption, let ink = liveInk, let stage = liveStage, let pill = livePill,
               let caption = Self.textImage(text, font: Self.captionFont, color: ink, scale: liveScale, crisp: false) else { return }
+        let old = stage.bounds.width
+        let width = liveFixed + max(liveText, caption.size.width)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         layer.contents = caption.image
         layer.frame.size = caption.size
+        CATransaction.commit()
+        guard width != old else { return }
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(reduceMotion ? 0 : 0.22)
+        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
+        stage.bounds.size.width = width
+        pill.frame = stage.bounds
+        if let halo = liveHalo {
+            halo.frame = stage.bounds
+            let radius = stage.bounds.height / 2
+            halo.shadowPath = CGPath(roundedRect: stage.bounds, cornerWidth: radius, cornerHeight: radius, transform: nil)
+        }
+        for bar in bars { bar.position.x += width - old }
         CATransaction.commit()
     }
 
@@ -278,6 +308,8 @@ final class Toast {
         let current = generation
         liveStage = nil
         liveCaption = nil
+        livePill = nil
+        liveHalo = nil
         bars = []
         leave(stage, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in

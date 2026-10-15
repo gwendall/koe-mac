@@ -24,10 +24,17 @@ enum Vocabulary {
         while i < tokens.count {
             var merged = false
             for window in [3, 2] where i + window <= tokens.count {
-                let slice = tokens[i..<(i + window)]
+                let slice = Array(tokens[i..<(i + window)])
                 let (lastBase, punctuation) = splitPunctuation(slice.last!)
-                let joined = slice.dropLast().map { plain($0) }.joined() + plain(lastBase)
-                if let index = normalized.firstIndex(where: { $0 == joined || (joined.count >= 4 && distance($0, joined) <= 1) }) {
+                let parts = slice.dropLast().map { plain($0) } + [plain(lastBase)]
+                // Only words run together: no stray mark, and no word that
+                // is one of yours on its own ("à Gwendall" stays two words).
+                guard parts.allSatisfy({ $0.contains(where: \.isLetter) && !$0.contains(where: \.isPunctuation) }) else { continue }
+                let joined = parts.joined()
+                let rest = [parts.dropFirst().joined(), parts.dropLast().joined()]
+                if let index = normalized.firstIndex(where: { word in
+                    word == joined || (joined.count >= 4 && distance(word, joined) <= 1 && !rest.contains { distance(word, $0) <= 1 })
+                }) {
                     out.append(words[index] + punctuation)
                     i += window
                     merged = true

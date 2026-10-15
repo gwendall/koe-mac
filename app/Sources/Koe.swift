@@ -18,7 +18,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let transcriber = Transcriber()
     let state = KoeState()
 
-    private enum Phase { case idle, listening, transcribing }
+    private enum Phase { case idle, listening, transcribing, typing }
     private var phase = Phase.idle { didSet { phaseChanged() } }
 
     // The dictation under way.
@@ -40,6 +40,11 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // Nothing longer than this: memory stays bounded, and Koe never listens forever.
     private static let longest: TimeInterval = 30 * 60
+    // Where Koe typed last, and the keyboard's count of keys and clicks then.
+    private var lastTyped: (pid: pid_t, touches: Int, end: Character)?
+    #if KOE_EVAL
+    private var evalDoor: EvalDoor?
+    #endif
 
     // MARK: - Launch
 
@@ -155,15 +160,26 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Eval builds only (KOE_EVAL=1 scripts/build.sh): the shortcut and
         // Escape, pressed from outside, for end-to-end runs without a hand
         // on the keyboard. Never in a release.
-        let center = DistributedNotificationCenter.default()
-        for (name, act) in [("down", hotkey.onDown), ("up", hotkey.onUp), ("escape", hotkey.onEscape)] {
-            center.addObserver(forName: Notification.Name("fm.koe.mac.eval.\(name)"), object: nil, queue: .main) { _ in
-                MainActor.assumeIsolated { act?() }
+        evalDoor = EvalDoor(["down", "up", "escape", "feed", "dictate"]) { [weak self] name, object in
+            guard let self else { return }
+            switch name {
+            case "down": self.hotkey.onDown?()
+            case "up": self.hotkey.onUp?()
+            case "escape": self.hotkey.onEscape?()
+            case "feed": if let object { self.recorder.feed(URL(fileURLWithPath: object)) }
+            case "dictate":
+                // A whole dictation of a file: pressed, the file heard, released
+                // (pressed again in toggle mode; Escape for "<path>|escape"),
+                // with no gap for the mic to fill.
+                guard let parts = object?.components(separatedBy: "|") else { return }
+                self.hotkey.onDown?()
+                self.recorder.feed(URL(fileURLWithPath: parts[0])) { [weak self] in
+                    guard let self else { return }
+                    if parts.count > 1, parts[1] == "escape" { self.hotkey.onEscape?() }
+                    else if self.state.effectiveToggles { self.hotkey.onDown?() } else { self.hotkey.onUp?() }
+                }
+            default: break
             }
-        }
-        center.addObserver(forName: Notification.Name("fm.koe.mac.eval.feed"), object: nil, queue: .main) { [weak self] note in
-            guard let path = note.object as? String else { return }
-            MainActor.assumeIsolated { self?.recorder.feed(URL(fileURLWithPath: path)) }
         }
         #endif
     }
@@ -287,6 +303,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let seconds = Date().timeIntervalSince(startedAt)
         // A tap on the shortcut, not a dictation.
         guard seconds > 0.25, samples.count > 4_000 else {
+            Log.note("dictation", ["tap": true])
             journal.discard()
             self.journal = nil
             phase = .idle
@@ -367,7 +384,16 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             field.insertText(text + " ", replacementRange: field.selectedRange())
             result = .typed
         } else {
-            result = await Paster.type(text, into: Target.resolve(from: origin), submit: state.submits)
+            // Too late to cancel: ⌘V may already be on its way.
+            phase = .typing
+            let verdict = Target.resolve(from: origin)
+            var follows: Character?
+            if let last = lastTyped, last.touches == hotkey.touches, last.pid == verdict.app?.processIdentifier { follows = last.end }
+            result = await Paster.type(text, into: verdict, submit: state.submits, follows: follows)
+            if case .copied = result { lastTyped = nil } else if let app = verdict.app {
+                // Read after the paste: Koe's own ⌘V and Return count as keys.
+                lastTyped = (app.processIdentifier, hotkey.touches, state.submits ? "\n" : text.last ?? " ")
+            }
         }
         remember(text)
         journal.discard()
@@ -379,6 +405,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             play(.typed)
             pop(Toast.typed)
         case .copied(let why):
+            Log.note("copied", ["why": why])
             show(Pixels.typed)
             play(.select)
             pop(Toast.note(Words.say("COPIED"), Words.say("%@. Paste it with ⌘V", why)))
@@ -400,7 +427,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             toast.dismiss()
         case .transcribing:
             break
-        case .idle:
+        case .typing, .idle:
             return
         }
         dictation += 1
@@ -408,6 +435,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         journal = nil
         phase = .idle
         show(Pixels.ready)
+        Log.note("dictation", ["cancelled": quietly ? "chord" : "escape"])
         if !quietly {
             play(.stop)
             pop(Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed")))
@@ -680,7 +708,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !state.accessibility { return Words.say("Accessibility off: allow it in Settings") }
         switch phase {
         case .listening: return Words.say("Listening…")
-        case .transcribing: return Words.say("Typing…")
+        case .transcribing, .typing: return Words.say("Typing…")
         case .idle: return state.howTo
         }
     }
@@ -798,3 +826,30 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         playing = player
     }
 }
+
+#if KOE_EVAL
+// The eval doors' ears. Delivered at once even while Koe is in the
+// background, where macOS otherwise holds distributed notifications back.
+final class EvalDoor: NSObject {
+    private let act: @MainActor (String, String?) -> Void
+
+    init(_ names: [String], act: @escaping @MainActor (String, String?) -> Void) {
+        self.act = act
+        super.init()
+        for name in names {
+            DistributedNotificationCenter.default().addObserver(self, selector: #selector(heard(_:)), name: Notification.Name("fm.koe.mac.eval.\(name)"),
+                                                                object: nil, suspensionBehavior: .deliverImmediately)
+        }
+        // AppKit suspends the center whenever Koe is not the active app.
+        DistributedNotificationCenter.default().suspended = false
+        NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { _ in
+            DistributedNotificationCenter.default().suspended = false
+        }
+    }
+
+    @objc private func heard(_ note: Notification) {
+        let name = String(note.name.rawValue.dropFirst("fm.koe.mac.eval.".count)), object = note.object as? String
+        DispatchQueue.main.async { MainActor.assumeIsolated { self.act(name, object) } }
+    }
+}
+#endif

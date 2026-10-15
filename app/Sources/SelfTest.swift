@@ -8,7 +8,7 @@ enum SelfTest {
     private static var failures = 0
     private static var checks = 0
 
-    private static func check(_ condition: Bool, _ name: String) {
+    static func check(_ condition: Bool, _ name: String) {
         checks += 1
         if !condition {
             failures += 1
@@ -23,6 +23,7 @@ enum SelfTest {
         shortcuts()
         hotkey()
         journal()
+        fuzz()
         print("\(checks - failures)/\(checks) checks passed")
         return failures == 0 ? 0 : 1
     }
@@ -33,6 +34,9 @@ enum SelfTest {
         check(Vocabulary.correct("Open Ai is here", with: words) == "OpenAI is here", "vocabulary: words run together")
         check(Vocabulary.correct("go to the toe", with: words) == "go to the toe", "vocabulary: short words and far words untouched")
         check(Vocabulary.correct("Gwendall said", with: words) == "Gwendall said", "vocabulary: already right")
+        check(Vocabulary.correct("Parle à Gwendall.", with: words) == "Parle à Gwendall.", "vocabulary: a short word before one of yours is kept")
+        check(Vocabulary.correct("Merci… Gwendall", with: words) == "Merci… Gwendall", "vocabulary: a mark before one of yours is kept")
+        check(Vocabulary.correct("Tu connais Gwendal ?", with: words) == "Tu connais Gwendall ?", "vocabulary: French spacing before ? kept")
         check(Vocabulary.correct("café crème", with: []) == "café crème", "vocabulary: empty dictionary")
         check(Transcriber.clean(" mot <unk>ssi<unk>  <unk> qui ") == "mot ssi qui", "model: <unk> removed")
     }
@@ -70,7 +74,7 @@ enum SelfTest {
         check(Shortcut(kind: .combo, keyCode: 49, modifiers: control | option).label == "⌃⌥Space", "shortcut: combination label")
     }
 
-    private static func event(_ type: CGEventType, _ code: UInt16, _ flags: CGEventFlags = [], repeating: Bool = false) -> CGEvent {
+    static func event(_ type: CGEventType, _ code: UInt16, _ flags: CGEventFlags = [], repeating: Bool = false) -> CGEvent {
         let event = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: type != .keyUp)!
         event.type = type
         event.flags = flags
@@ -147,6 +151,12 @@ enum SelfTest {
         hotkey.escapeActive = true
         check(!hotkey.handle(.keyDown, event(.keyDown, 53)), "escape: kept while Koe listens")
         check(log == ["escape"], "escape: cancels")
+        let touches = hotkey.touches
+        _ = hotkey.handle(.keyDown, event(.keyDown, 0))
+        _ = hotkey.handle(.leftMouseDown, event(.leftMouseDown, 0))
+        check(hotkey.touches == touches + 2, "touches: a key and a click that reach the app count")
+        _ = hotkey.handle(.keyDown, event(.keyDown, 53))
+        check(hotkey.touches == touches + 2, "touches: Koe's own Escape doesn't")
         hotkey.escapeActive = false
 
         // Recording a shortcut.

@@ -28,6 +28,9 @@ final class Hotkey {
     // Recording a new shortcut: everything goes there, nothing fires.
     var onCapture: ((Shortcut?) -> Void)?
     var isCapturing: Bool { onCapture != nil }
+    // Keys and clicks seen so far, Koe's own shortcut aside: while it stands
+    // still, the cursor has not moved since Koe last typed.
+    private(set) var touches = 0
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
@@ -102,6 +105,12 @@ final class Hotkey {
 
     // Whether the event goes on to the rest of the Mac.
     func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+        let passes = route(type, event)
+        if passes, [.keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown].contains(type) { touches += 1 }
+        return passes
+    }
+
+    private func route(_ type: CGEventType, _ event: CGEvent) -> Bool {
         let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
         if isCapturing { return captureEvent(type, event, code) }
 

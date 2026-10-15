@@ -53,9 +53,34 @@ final class Recorder {
             throw error
         }
         self.engine = engine
-        // AirPods leaving, a USB mic unplugged, the default changing.
+        // AirPods coming or going, a USB mic unplugged, the default changing,
+        // or just the chosen microphone settling in: macOS stops the engine.
+        // Koe goes on listening on whatever microphone there is now, and only
+        // gives up when there is none.
         observer = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
-            self?.onInterrupted?()
+            self?.resume()
+        }
+    }
+
+    private func resume() {
+        guard let engine, !engine.isRunning else { return }
+        let input = engine.inputNode
+        input.removeTap(onBus: 0)
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0, let converter = AVAudioConverter(from: format, to: target) else {
+            onInterrupted?()
+            return
+        }
+        self.converter = converter
+        input.installTap(onBus: 0, bufferSize: 2048, format: format) { [weak self] buffer, _ in
+            self?.take(buffer)
+        }
+        do {
+            try engine.start()
+            Log.note("microphone", ["resumed": Int(format.sampleRate)])
+        } catch {
+            input.removeTap(onBus: 0)
+            onInterrupted?()
         }
     }
 
@@ -111,7 +136,7 @@ final class Recorder {
     private var feeding = false
 
     #if KOE_EVAL
-    func feed(_ url: URL) {
+    func feed(_ url: URL, done: (@MainActor () -> Void)? = nil) {
         guard engine != nil, let file = try? AVAudioFile(forReading: url),
               let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
               (try? file.read(into: buffer)) != nil,
@@ -133,6 +158,7 @@ final class Recorder {
                 self?.heard(Array(all[start..<min(start + 1_600, all.count)]))
                 Thread.sleep(forTimeInterval: 0.1)
             }
+            DispatchQueue.main.async { MainActor.assumeIsolated { done?() } }
         }
     }
     #endif
