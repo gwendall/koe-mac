@@ -576,7 +576,7 @@ struct SettingsView: View {
                     } label: {
                         Text(state.capturing ? Words.say("Press your shortcut…") : state.shortcut.label)
                             .font(Brand.body(13, weight: .semibold))
-                            .frame(minWidth: 120)
+                            .frame(minWidth: 36)
                     }
                 }
                 if state.capturing {
@@ -616,12 +616,12 @@ struct SettingsView: View {
             }
 
             Section(Words.say("Typing")) {
-                Toggle(Words.say("Press Return after typing"), isOn: $state.submits)
-                Text(Words.say("Sends the message in chats and terminals. Koe never presses Return if the words did not arrive."))
-                    .font(Brand.body(11)).foregroundStyle(.secondary)
+                Toggle(isOn: $state.submits) {
+                    Explained(Words.say("Press Return after typing"),
+                              Words.say("Sends the message in chats and terminals. Koe never presses Return if the words did not arrive."))
+                }
                 Toggle(Words.say("Keep my last dictations in the menu"), isOn: $state.keepsRecent)
-                Toggle(Words.say("Polish the words"), isOn: $state.polish)
-                Text(polishDetail).font(Brand.body(11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: $state.polish) { Explained(Words.say("Polish the words"), polishDetail) }
                 if state.polish, let share = state.polishShare {
                     CandyBar(share: share)
                 } else if state.polish, !state.polishReady, !state.polishFailed {
@@ -635,14 +635,8 @@ struct SettingsView: View {
             Section(Words.say("Dictionary")) {
                 Text(Words.say("Names and words Koe should spell your way."))
                     .font(Brand.body(11)).foregroundStyle(.secondary)
-                ForEach(state.words, id: \.self) { word in
-                    HStack {
-                        Text(word)
-                        Spacer()
-                        Button { state.words.removeAll { $0 == word } } label: { Image(systemName: "minus.circle") }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel(Words.say("Remove %@", word))
-                    }
+                if !state.words.isEmpty {
+                    Tags(words: state.words) { word in state.words.removeAll { $0 == word } }
                 }
                 // A field that looks like one: a form's TextField shows its
                 // title as a label and the box itself barely at all.
@@ -654,6 +648,18 @@ struct SettingsView: View {
                     Button(Words.say("Add"), action: add)
                         .keyboardShortcut(.defaultAction)
                         .disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+
+            Section("Koe") {
+                Picker(Words.say("Pill while you talk"), selection: $state.place) {
+                    ForEach(Indicator.Place.allCases) { place in Text(place.name).tag(place) }
+                }
+                Toggle(Words.say("Sounds"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
+                Toggle(Words.say("Open at Login"), isOn: Binding(get: { state.login }, set: { state.setLogin($0) }))
+                Toggle(Words.say("Update Automatically"), isOn: $state.updates)
+                LabeledContent(Words.say("Something wrong?")) {
+                    Button(Words.say("Copy Diagnostic Report")) { state.copyReport() }
                 }
             }
 
@@ -673,18 +679,6 @@ struct SettingsView: View {
                 Text(Words.say("Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3. Core ML by FluidInference. CC BY 4.0.")
                      + " " + Words.say("Polishing: Qwen3.5 2B by the Qwen team (Apache 2.0), through llama.cpp (MIT)."))
                     .font(Brand.body(10)).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Koe") {
-                Toggle(Words.say("Sounds"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
-                Picker(Words.say("Pill while you talk"), selection: $state.place) {
-                    ForEach(Indicator.Place.allCases) { place in Text(place.name).tag(place) }
-                }
-                Toggle(Words.say("Open at Login"), isOn: Binding(get: { state.login }, set: { state.setLogin($0) }))
-                Toggle(Words.say("Update Automatically"), isOn: $state.updates)
-                LabeledContent(Words.say("Something wrong?")) {
-                    Button(Words.say("Copy Diagnostic Report")) { state.copyReport() }
-                }
             }
         }
         .formStyle(.grouped)
@@ -782,5 +776,77 @@ struct SharedFn: View {
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
+    }
+}
+
+// A setting's name with its explanation under it, in the same row as its
+// switch, so the two read as one.
+struct Explained: View {
+    let title: String, detail: String
+    init(_ title: String, _ detail: String) { self.title = title; self.detail = detail }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+            Text(detail).font(Brand.body(11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+// The dictionary's words as tags that wrap, each with its own ✕.
+struct Tags: View {
+    let words: [String]
+    let remove: (String) -> Void
+
+    var body: some View {
+        Flow(spacing: 6) {
+            ForEach(words, id: \.self) { word in
+                HStack(spacing: 4) {
+                    Text(word).font(Brand.body(12))
+                    Button { remove(word) } label: {
+                        Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel(Words.say("Remove %@", word))
+                }
+                .padding(.leading, 9).padding(.trailing, 7).padding(.vertical, 4)
+                .background(Capsule().fill(Color.primary.opacity(0.07)))
+            }
+        }
+    }
+}
+
+// Lays its views out in lines, left to right, wrapping at the width it has.
+struct Flow: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        let frames = place(subviews, in: width)
+        return CGSize(width: proposal.width ?? frames.map(\.maxX).max() ?? 0, height: frames.map(\.maxY).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (frame, view) in zip(place(subviews, in: bounds.width), subviews) {
+            view.place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY), proposal: ProposedViewSize(frame.size))
+        }
+    }
+
+    private func place(_ subviews: Subviews, in width: CGFloat) -> [CGRect] {
+        var frames: [CGRect] = []
+        var x: CGFloat = 0, y: CGFloat = 0, line: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += line + spacing
+                line = 0
+            }
+            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
+            x += size.width + spacing
+            line = max(line, size.height)
+        }
+        return frames
     }
 }

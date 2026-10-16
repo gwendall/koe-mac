@@ -18,6 +18,8 @@ final class Recorder {
     private var observer: NSObjectProtocol?
     private let lock = NSLock()
     private var samples: [Float] = []
+    // How long the microphone has been quiet, up to now (audio thread).
+    private var quiet = 0
     private let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
 
     static var permission: AVAuthorizationStatus { AVCaptureDevice.authorizationStatus(for: .audio) }
@@ -30,7 +32,7 @@ final class Recorder {
 
     func start() throws {
         feeding = false
-        lock.lock(); samples.removeAll(keepingCapacity: true); lock.unlock()
+        lock.lock(); samples.removeAll(keepingCapacity: true); quiet = 0; lock.unlock()
         let engine = AVAudioEngine()
         let input = engine.inputNode
         if var id = Devices.current(), let unit = input.audioUnit {
@@ -117,13 +119,22 @@ final class Recorder {
         heard(chunk)
     }
 
-    private func heard(_ chunk: [Float]) {
-        lock.lock(); samples.append(contentsOf: chunk); lock.unlock()
-        onSamples?(chunk)
+    // Seconds since the voice last rose above a quiet room.
+    var quietFor: TimeInterval {
+        lock.lock(); defer { lock.unlock() }
+        return Double(quiet) / 16_000
+    }
 
+    private func heard(_ chunk: [Float]) {
         // Loudness in dB, -50 (silence) to -10 (a raised voice), as 0 to 1.
         let power = chunk.reduce(Float(0)) { $0 + $1 * $1 } / Float(chunk.count)
         let db = 10 * log10(max(power, 1e-10))
+        lock.lock()
+        samples.append(contentsOf: chunk)
+        quiet = db < -42 ? quiet + chunk.count : 0
+        lock.unlock()
+        onSamples?(chunk)
+
         let level = max(0, min(1, (db + 50) / 40))
         DispatchQueue.main.async { [weak self] in self?.onLevel?(level) }
     }
@@ -173,27 +184,28 @@ final class Recorder {
         return (sum / Float(samples.count)).squareRoot() < 1e-4 && peak < 1e-3
     }
 
-    // Leading and trailing silence off, 0.3 s kept around the speech; the
-    // middle is never touched, so no word is ever cut.
+    // Leading and trailing silence off, around the speech; the middle is
+    // never touched. Silence is judged against the room's own noise, never
+    // against the loudest moment: a knock on the desk once made a softly
+    // spoken last few words count as silence, and they were lost. Half a
+    // second is kept after the speech, more than the model needs to end well.
     static func trimmed(_ samples: [Float]) -> [Float] {
         let frame = 480 // 30 ms
         guard samples.count > frame * 10 else { return samples }
-        let peak = samples.lazy.map(abs).max() ?? 0
-        guard peak > 0 else { return samples }
-        // Judged on a copy brought to the same level, so a quiet voice counts as speech.
-        let threshold = peak * 0.04
-        func loud(_ start: Int) -> Bool {
+        var levels: [Float] = []
+        levels.reserveCapacity(samples.count / frame + 1)
+        for start in stride(from: 0, to: samples.count, by: frame) {
             let end = min(start + frame, samples.count)
             var sum: Float = 0
             for i in start..<end { sum += samples[i] * samples[i] }
-            return (sum / Float(end - start)).squareRoot() > threshold
+            levels.append((sum / Float(end - start)).squareRoot())
         }
-        var first = 0
-        while first < samples.count && !loud(first) { first += frame }
-        var last = samples.count - frame
-        while last > first && !loud(last) { last -= frame }
-        guard first < last else { return samples }
-        let pad = 4_800
-        return Array(samples[max(0, first - pad)..<min(samples.count, last + frame + pad)])
+        // The room: the quietest tenth of the recording.
+        let floor = levels.sorted()[levels.count / 10]
+        let threshold = max(floor * 3, 1e-3)
+        guard let first = levels.firstIndex(where: { $0 > threshold }),
+              let last = levels.lastIndex(where: { $0 > threshold }), first < last else { return samples }
+        let before = 4_800, after = 8_000
+        return Array(samples[max(0, first * frame - before)..<min(samples.count, (last + 1) * frame + after)])
     }
 }

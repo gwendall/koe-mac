@@ -69,11 +69,17 @@ enum SelfTest {
         let tone = (0..<16_000).map { Float(sin(Double($0) * 0.1)) * 0.3 }
         let pause = [Float](repeating: 0, count: 16_000)
         let trimmed = Recorder.trimmed(pause + tone + pause)
-        check(trimmed.count < 16_000 + 2 * 4_800 + 1_500 && trimmed.count >= 16_000, "trim: edges cut, 0.3 s kept around")
+        check(trimmed.count < 16_000 + 4_800 + 8_000 + 1_500 && trimmed.count >= 16_000, "trim: edges cut, 0.3 s kept before, 0.5 s after")
         let middle = Recorder.trimmed(tone + pause + tone)
         check(middle.count >= 48_000 - 960, "trim: a pause in the middle is never cut")
         let quiet = pause + tone.map { $0 * 0.02 } + pause
         check(Recorder.trimmed(quiet).count >= 16_000, "trim: a quiet voice is kept whole")
+        // A knock on the desk, then the last words said softly (18 dB down):
+        // they once counted as silence and were lost.
+        let hiss = (0..<16_000).map { Float(sin(Double($0) * 1.7)) * 0.001 }
+        let knock = [Float](repeating: 0.95, count: 40)
+        let ending = hiss + knock + tone + tone.map { $0 * 0.125 } + hiss
+        check(Recorder.trimmed(ending).count >= 40 + 32_000 + 8_000 - 960, "trim: soft last words after a knock are kept")
     }
 
     private static func shortcuts() {

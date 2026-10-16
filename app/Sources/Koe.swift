@@ -429,10 +429,12 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // The key comes up as the last syllable ends, and the audio of it is still
-    // on its way: the microphone listens a moment longer before it stops
-    // (less after a tap, which comes once the talking is done). The sound and
-    // the pill answer at once. Koe 0.1 lost last words without this.
+    // The key comes up as the last syllable ends, or is tapped while it is
+    // still being said, and the audio of it is still on its way: the
+    // microphone listens on until the voice has been quiet a quarter of a
+    // second (1.2 s at most). The sound and the pill answer at once. Koe 0.1
+    // lost last words without this, and a fixed 0.2 s after a tap still
+    // cut some.
     private func finish(tail: TimeInterval? = nil) {
         guard phase == .listening, let journal else { return }
         limitTimer?.invalidate()
@@ -441,10 +443,16 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         phase = .transcribing
         indicator.work()
         let current = dictation
-        DispatchQueue.main.asyncAfter(deadline: .now() + (tail ?? (latched ? 0.2 : 0.35))) { [weak self] in
-            guard let self, self.dictation == current else { return } // cancelled meanwhile
-            self.close(journal, after: seconds)
+        let stopped = Date()
+        func wait(_ delay: TimeInterval) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.dictation == current else { return } // cancelled meanwhile
+                let waited = Date().timeIntervalSince(stopped)
+                if tail == nil, waited < 1.2, self.recorder.quietFor < 0.25 { return wait(0.05) }
+                self.close(journal, after: seconds)
+            }
         }
+        wait(tail ?? 0.25)
     }
 
     private func close(_ journal: Journal, after seconds: TimeInterval) {

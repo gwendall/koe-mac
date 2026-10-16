@@ -44,7 +44,7 @@ enum Journey {
             ("19-settings-polish-off", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
             ("20-settings-polish-downloading", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.polish = true; $0.polishShare = 0.37 }, height: 1500)), NSSize(width: 480, height: 1500)),
             ("21-settings-polish-ready", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.modelReady = true; $0.polish = true; $0.polishReady = true }, height: 1500)), NSSize(width: 480, height: 1500)),
-            ("17-settings-dictionary", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.words = ["Gwendall", "Koe", "FluidAudio"]; $0.submits = true })), NSSize(width: 480, height: 640)),
+            ("17-settings-dictionary", AnyView(SettingsView(state: state { $0.microphone = true; $0.accessibility = true; $0.words = ["Gwendall", "Koe", "FluidAudio", "Parakeet", "Qwen", "llama.cpp", "Wham", "Superwhisper", "Neural Engine", "moondream"]; $0.submits = true }, height: 1500)), NSSize(width: 480, height: 1500)),
         ]
         for (name, view, size) in screens {
             for dark in [false, true] {
