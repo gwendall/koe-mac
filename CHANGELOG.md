@@ -5,6 +5,12 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.3 - 2026-10-16
+
+- Long dictations are polished again. Past a minute or so, polishing ran out of time and Koe typed your words as heard; it now polishes a few sentences at a time, and a two-minute dictation takes about two seconds.
+- Open at Login follows Koe: if the copy that turned it on has moved, the one in Applications takes over.
+- In Settings, the shortcut looks like a key and lights up under the pointer, and a dictionary word shows its ✕ when you point at it.
+
 ## 2.2.2 - 2026-10-16
 
 - Your last words are no longer cut off. A knock on the desk could make Koe take softly spoken last words for silence; and after a tap, Koe now listens until your voice has gone quiet, not a fixed fifth of a second.
