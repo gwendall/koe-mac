@@ -578,6 +578,8 @@ struct SettingsView: View {
                             .font(Brand.body(13, weight: .semibold))
                             .frame(minWidth: 36)
                     }
+                    .buttonStyle(KeyCap(listening: state.capturing))
+                    .help(Words.say("Click, then press the shortcut you want"))
                 }
                 if state.capturing {
                     Text(Words.say("fn, a modifier on its own (like right ⌥), or a combination like ⌃⌥Space. Escape cancels."))
@@ -800,19 +802,71 @@ struct Tags: View {
 
     var body: some View {
         Flow(spacing: 6) {
-            ForEach(words, id: \.self) { word in
-                HStack(spacing: 4) {
-                    Text(word).font(Brand.body(12))
-                    Button { remove(word) } label: {
-                        Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(Words.say("Remove %@", word))
-                }
-                .padding(.leading, 9).padding(.trailing, 7).padding(.vertical, 4)
-                .background(Capsule().fill(Color.primary.opacity(0.07)))
+            ForEach(words, id: \.self) { word in Tag(word: word) { remove(word) } }
+        }
+    }
+}
+
+// One word: its ✕ comes forward when the pointer is on the tag, and
+// darkens under the pointer itself.
+private struct Tag: View {
+    let word: String
+    let remove: () -> Void
+    @State private var hovered = false
+    @State private var onCross = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(word).font(Brand.body(12))
+            Button(action: remove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .frame(width: 14, height: 14)
+                    .background(Circle().fill(Color.primary.opacity(onCross ? 0.15 : 0)))
+                    .contentShape(Circle())
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(onCross ? .primary : hovered ? .secondary : .tertiary)
+            .onHover { onCross = $0 }
+            .help(Words.say("Remove %@", word))
+            .accessibilityLabel(Words.say("Remove %@", word))
+        }
+        .padding(.leading, 9).padding(.trailing, 5).padding(.vertical, 4)
+        .background(Capsule().fill(Color.primary.opacity(hovered ? 0.11 : 0.07)))
+        .onHover { hovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovered)
+        .animation(.easeOut(duration: 0.12), value: onCross)
+    }
+}
+
+// The shortcut, drawn as a key: lighter under the pointer, pressed in when
+// clicked, and outlined in Koe's colours while it waits for a new one.
+struct KeyCap: ButtonStyle {
+    var listening = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Cap(configuration: configuration, listening: listening)
+    }
+
+    private struct Cap: View {
+        let configuration: Configuration
+        let listening: Bool
+        @State private var hovered = false
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.primary.opacity(configuration.isPressed ? 0.18 : hovered ? 0.13 : 0.08)))
+                .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .stroke(listening ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(Color.primary.opacity(hovered ? 0.18 : 0.1)),
+                            lineWidth: listening ? 1.5 : 0.5))
+                .scaleEffect(configuration.isPressed ? 0.97 : 1)
+                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .onHover { hovered = $0 }
+                .animation(.easeOut(duration: 0.12), value: hovered)
+                .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
         }
     }
 }
