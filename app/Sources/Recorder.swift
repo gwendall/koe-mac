@@ -190,8 +190,13 @@ final class Recorder {
     // spoken last few words count as silence, and they were lost. Half a
     // second is kept after the speech, more than the model needs to end well.
     static func trimmed(_ samples: [Float]) -> [Float] {
+        Array(samples[speech(samples)])
+    }
+
+    // Where `trimmed` cuts.
+    static func speech(_ samples: [Float]) -> Range<Int> {
         let frame = 480 // 30 ms
-        guard samples.count > frame * 10 else { return samples }
+        guard samples.count > frame * 10 else { return 0..<samples.count }
         var levels: [Float] = []
         levels.reserveCapacity(samples.count / frame + 1)
         for start in stride(from: 0, to: samples.count, by: frame) {
@@ -204,8 +209,8 @@ final class Recorder {
         let floor = levels.sorted()[levels.count / 10]
         let threshold = max(floor * 3, 1e-3)
         guard let first = levels.firstIndex(where: { $0 > threshold }),
-              let last = levels.lastIndex(where: { $0 > threshold }), first < last else { return samples }
+              let last = levels.lastIndex(where: { $0 > threshold }), first < last else { return 0..<samples.count }
         let before = 4_800, after = 8_000
-        return Array(samples[max(0, first * frame - before)..<min(samples.count, (last + 1) * frame + after)])
+        return max(0, first * frame - before)..<min(samples.count, (last + 1) * frame + after)
     }
 }

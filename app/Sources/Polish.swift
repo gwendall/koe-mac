@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 import llama
 
 // Two passes after Parakeet, both on this Mac.
@@ -195,6 +196,31 @@ actor Polisher {
         }
         let answer = String(decoding: out.map { UInt8(bitPattern: $0) }, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
         return Self.keep(answer, said: text)
+    }
+
+    // A long dictation goes to the model a few sentences at a time: each block
+    // is quick, stays close to what was said, and one that strays falls back
+    // alone. Whole, a two-minute dictation ran past the deadline and lost its
+    // polishing altogether.
+    static func blocks(_ text: String, words limit: Int = 60) -> [String] {
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+        var blocks: [String] = [], current = "", count = 0
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let sentence = text[range].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !sentence.isEmpty else { return true }
+            let words = sentence.split(whereSeparator: \.isWhitespace).count
+            if count > 0, count + words > limit {
+                blocks.append(current)
+                current = ""
+                count = 0
+            }
+            current += current.isEmpty ? sentence : " " + sentence
+            count += words
+            return true
+        }
+        if !current.isEmpty { blocks.append(current) }
+        return blocks.isEmpty ? [text] : blocks
     }
 
     // What Koe types: the model's words, unless they stray from what was said.

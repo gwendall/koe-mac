@@ -253,8 +253,29 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.indicator.show()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { if self.phase == .idle { self.indicator.done() } }
         }
+        followLogin()
         state.login = SMAppService.mainApp.status == .enabled
         state.inputs = Devices.inputs()
+    }
+
+    // Open at Login opens the copy that turned it on. When Koe has moved since
+    // (a build replaced by the app from koe.fm, a copy dragged elsewhere),
+    // the copy in Applications takes it over, so the Mac doesn't start an
+    // old Koe, or none.
+    private func followLogin() {
+        let path = Bundle.main.bundlePath
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        guard SMAppService.mainApp.status == .enabled,
+              path.hasPrefix("/Applications/") || path.hasPrefix(home + "/Applications/"),
+              UserDefaults.standard.string(forKey: "loginPath") != path else { return }
+        try? SMAppService.mainApp.unregister()
+        do {
+            try SMAppService.mainApp.register()
+            UserDefaults.standard.set(path, forKey: "loginPath")
+            Log.note("login", ["moved": true])
+        } catch {
+            Log.note("login", ["moved": false])
+        }
     }
 
     // MARK: - The shortcut
@@ -449,6 +470,8 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self, self.dictation == current else { return } // cancelled meanwhile
                 let waited = Date().timeIntervalSince(stopped)
                 if tail == nil, waited < 1.2, self.recorder.quietFor < 0.25 { return wait(0.05) }
+                // How long Koe listened on, and whether the voice had gone quiet.
+                Log.note("stopped", ["tail_ms": Int(waited * 1000), "quiet_ms": Int(self.recorder.quietFor * 1000)])
                 self.close(journal, after: seconds)
             }
         }
@@ -502,8 +525,12 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // The words, or nil if the model failed or took too long.
     private func transcribe(_ samples: [Float]) async -> String? {
-        let audio = Recorder.trimmed(samples)
+        // What the trim takes at each end goes to the log, to tell a cut word
+        // from a cut silence.
+        let speech = Recorder.speech(samples)
+        let audio = Array(samples[speech])
         let seconds = Double(audio.count) / 16_000
+        let cut = (start: speech.lowerBound, end: samples.count - speech.upperBound)
         // About 0.1 s for a sentence, 4 s for half an hour: far past that the
         // model is stuck, and Koe lets go (the words stay in the journal).
         let deadline = 15 + seconds / 2
@@ -517,7 +544,8 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             state.modelReady = false
             prepareModel()
         }
-        Log.note("transcribed", ["audio": String(format: "%.1f", seconds), "ms": Int(Date().timeIntervalSince(started) * 1000),
+        Log.note("transcribed", ["audio": String(format: "%.1f", seconds),
+                                 "trim_start_ms": cut.start / 16, "trim_end_ms": cut.end / 16, "ms": Int(Date().timeIntervalSince(started) * 1000),
                                  "words": text.map { $0.split(separator: " ").count } ?? -1])
         guard let text, !text.isEmpty else { return text == nil ? nil : "" }
         return await polished(Vocabulary.correct(Fillers.strip(text)))
@@ -530,9 +558,32 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func polished(_ text: String) async -> String {
         guard state.polish, state.polishReady else { return text }
         let started = Date(), words = Vocabulary.words, polisher = self.polisher
-        let answer = await Deadline.race(1.5) { await polisher.polish(text, words: words) }
-        Log.note("polished", ["ms": Int(Date().timeIntervalSince(started) * 1000), "kept": answer != nil])
-        return answer.map { Vocabulary.correct($0) } ?? text
+        let blocks = Polisher.blocks(text)
+        // 1.5 s for a sentence or a few; a long dictation gets more, about
+        // what the model takes for it, and past that the rest goes as heard.
+        let budget = max(1.5, Double(text.split(whereSeparator: \.isWhitespace).count) * 0.009)
+        var out: [String] = [], kept = 0, late = false
+        for block in blocks {
+            let left = budget - Date().timeIntervalSince(started)
+            guard !late, left > 0.2 else {
+                late = true
+                out.append(block)
+                continue
+            }
+            let limit = min(1.5, left), asked = Date()
+            if let answer = await Deadline.race(limit, { await polisher.polish(block, words: words) }) {
+                out.append(Vocabulary.correct(answer))
+                kept += 1
+            } else {
+                out.append(block)
+                // Out of time, not just strayed: the model is still busy with
+                // this block, so the rest goes as heard.
+                if Date().timeIntervalSince(asked) >= limit - 0.05 { late = true }
+            }
+        }
+        Log.note("polished", ["ms": Int(Date().timeIntervalSince(started) * 1000), "kept": kept == blocks.count,
+                              "blocks": blocks.count, "polished": kept])
+        return out.joined(separator: " ")
     }
 
     // Switched on: the model comes down (1.3 GB, in the background, Koe typing
@@ -1186,6 +1237,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setLogin(_ on: Bool) {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            UserDefaults.standard.set(on ? Bundle.main.bundlePath : nil, forKey: "loginPath")
             play(.check(on))
         } catch {
             play(.refused)

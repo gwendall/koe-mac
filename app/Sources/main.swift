@@ -72,8 +72,13 @@ if args.first == "--polish", args.count > 1 {
         for text in args.dropFirst() {
             let stripped = Fillers.strip(text)
             let start = Date()
-            let polished = await polisher.polish(stripped, words: words)
-            print(String(format: "%.0f ms | %@ -> %@", Date().timeIntervalSince(start) * 1000, text, polished ?? "(kept) " + stripped))
+            // Block by block, as Koe does (Polisher.blocks).
+            var parts: [String] = []
+            for block in Polisher.blocks(stripped) {
+                let polished = await polisher.polish(block, words: words)
+                parts.append(polished ?? "(kept) " + block)
+            }
+            print(String(format: "%.0f ms | %@ -> %@", Date().timeIntervalSince(start) * 1000, text, parts.joined(separator: " ")))
         }
         await polisher.unload()
         done.signal()

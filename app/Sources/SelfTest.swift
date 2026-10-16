@@ -53,6 +53,10 @@ enum SelfTest {
         check(Fillers.strip("Uh.") == "Uh.", "fillers: nothing but a filler is left as is")
         check(Fillers.strip("Ship it.") == "Ship it.", "fillers: nothing to take, nothing touched")
         // The polishing model's answer is kept only close to what was said.
+        let long = (1...30).map { "Sentence number \($0) has a few words." }.joined(separator: " ")
+        let blocks = Polisher.blocks(long)
+        check(blocks.count == 4 && blocks.joined(separator: " ") == long, "polish: a long dictation goes in blocks of whole sentences, nothing lost")
+        check(Polisher.blocks("Ship it.") == ["Ship it."], "polish: a sentence is one block")
         check(Polisher.keep("Can you send me the report?", said: "Um can you send me the the report?") != nil, "polish: a clean-up is kept")
         check(Polisher.keep("Paris.", said: "What's the capital of France?") == nil, "polish: an answer is thrown away")
         check(Polisher.keep("", said: "Ship it.") == nil, "polish: nothing is thrown away")
