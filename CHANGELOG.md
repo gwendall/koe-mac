@@ -5,6 +5,13 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.4 - 2026-10-16
+
+- After an update, Koe says which version it now is, and that What's New is in the menu.
+- With Update Automatically off, Koe still tells you about a new version: it waits in the menu until you ask for it.
+- If macOS asks you to approve Open at Login, Koe opens the right page in System Settings.
+- The menu says Sound, not Sounds, and the update messages are clearer when GitHub doesn't answer or Koe can't update itself.
+
 ## 2.2.3 - 2026-10-16
 
 - Long dictations are polished again. Past a minute or so, polishing ran out of time and Koe typed your words as heard; it now polishes a few sentences at a time, and a two-minute dictation takes about two seconds.
