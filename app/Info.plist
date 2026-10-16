@@ -42,6 +42,6 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Koe hears you only while you hold fn, and turns your words into text on this Mac.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>From The Atelier. MIT License. Speech model: Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3, Core ML by FluidInference (CC BY 4.0).</string>
+	<string>Made by Gwendall - gwendall.com. MIT License. Speech model: Parakeet Ultra by moondream, from NVIDIA Parakeet TDT 0.6B v3, Core ML by FluidInference (CC BY 4.0).</string>
 </dict>
 </plist>

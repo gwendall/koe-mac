@@ -73,8 +73,8 @@ update the Homebrew cask. Secrets it needs: `DEVELOPER_ID_P12`,
 To meet Koe as a newcomer again: `defaults delete fm.koe.mac` and
 `tccutil reset All fm.koe.mac`, then open it.
 
-Brand: [docs/brand.md](docs/brand.md). Koe belongs to the family of
-[Wham](https://github.com/gwendall/wham), from The Atelier.
+Brand: [docs/brand.md](docs/brand.md). Made by Gwendall,
+[gwendall.com](https://gwendall.com).
 
 ## Credits
 

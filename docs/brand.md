@@ -1,9 +1,9 @@
 # Koe brand
 
 Koe is a tiny macOS menu bar app: hold a key, talk, and the words land where
-you type. It belongs to a family of micro-apps from The Atelier, after Wham.
-Same hand, same rules: pixel letters, a candy gradient, a little chiptune, one
-character with a face.
+you type. Pixel letters, a candy gradient, a little chiptune, one character
+with a face. Made by Gwendall: the signature, in the menu, the About line and
+the site's footer, is **Made by Gwendall** (gwendall.com).
 
 Koe (声) is Japanese for "voice". Always pair the name with what it does
 ("Koe - talk, it types"), because the name alone does not say it.
@@ -15,25 +15,8 @@ Koe (声) is Japanese for "voice". Always pair the name with what it does
   (see Type).
 - Bundle identifier: `fm.koe.mac`.
 
-## The family
-
-What every app of The Atelier shares, and what is its own:
-
-| Shared | Each app's own |
-| --- | --- |
-| A pixel character with a face, on a candy squircle | The character and its gradient |
-| The face's skin: butter `#fff1b8`, blush `#ff8fc8`, ink `#1a0b17` | |
-| Silkscreen for titles, a rounded sans for the rest | The name |
-| One 25% pulse wave for every sound, no effects | A key and a motif |
-| The 52 pt pill that drops from the menu bar | Its words |
-| The springs, the four menu sounds, the voice: say what the Mac does | |
-| `curl … \| sh`, the `gwendall/tap` Homebrew tap, updates on their own | The domain |
-
-The signature, once, at the bottom of a site and in the About line:
-**From The Atelier — Wham · Koe**.
-
-Wham is the day: a sun on pink, yellow and cyan. Koe is the evening and the
-voice: a chat bubble on bubblegum, cherry and violet. They share the pink.
+Koe is the evening and the voice: a chat bubble on bubblegum, cherry and
+violet.
 
 ## Voice
 
@@ -59,14 +42,15 @@ Short, plain, friendly. Say what happens to the words, not what the app is.
 | cherry | `#ff7a7a` | gradient middle |
 | violet | `#b07bff` | gradient end |
 | ink | `#1a0b17` | the outline, text on candy |
-| butter | `#fff1b8` | the bubble's face (the family's skin) |
+| butter | `#fff1b8` | the bubble's face, as on Wham's sun |
 | blush | `#ff8fc8` | cheeks and tongue |
 | night | `#0f0a14` | dark backgrounds |
 | pill | `#141414` | the dark pill |
 | glow | `rgba(255, 80, 160, 0.35)` | the glow under candy elements |
 
-The gradient runs from the top left to the bottom right: bubblegum, cherry,
-violet. Cool or pale gradients were tried and left out: they read as calm or
+The gradient runs from the top left to the bottom right on square things (the
+icon), and from left to right on long ones (pills, bars, words): bubblegum,
+cherry, violet. Cool or pale gradients were tried and left out: they read as calm or
 cold, and butter drowns in peach.
 
 ## Type

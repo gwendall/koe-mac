@@ -24,7 +24,7 @@ What changed in each version of Koe, newest first. Also on
 
 ## 2.2.0 - 2026-10-15
 
-- A new menu, shared with Wham: Return after typing, Polish and Sounds tick on and off right in it, and the menu stays open; Check for Updates answers in place; About Koe shows your version. It's narrower, with your last dictations on one line each and how long ago on the right.
+- A new menu: Return after typing, Polish and Sounds tick on and off right in it, and the menu stays open; Check for Updates answers in place; About Koe shows your version. It's narrower, with your last dictations on one line each and how long ago on the right.
 - Choose where the pill shows while you talk: Settings › Koe › Pill while you talk, at the bottom, top, left or right of the screen.
 - Dictating in the middle of a sentence no longer starts with a stray capital: after a word or a comma, the first word stays lowercase (names, acronyms and “I” keep theirs).
 - Setting up is sturdier: if Koe is missing from the Accessibility list, a card next to System Settings lets you drag it in, and the welcome window waits until it's on. Opened from the disk image, Koe offers to move itself to Applications first.
