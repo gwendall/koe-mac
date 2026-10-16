@@ -5,6 +5,11 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.2 - 2026-10-16
+
+- Your last words are no longer cut off. A knock on the desk could make Koe take softly spoken last words for silence; and after a tap, Koe now listens until your voice has gone quiet, not a fixed fifth of a second.
+- Clearer Settings: a narrower shortcut button, each switch with its explanation in one row, your dictionary as tags you remove with ✕, and How Koe works at the end.
+
 ## 2.2.1 - 2026-10-15
 
 - Koe asks before taking fn. If another app may start on fn too (Wispr Flow, Superwhisper, or any app listening to the keyboard), Try it asks you: keep fn for Koe, or use Right ⌥. An app that shows up later is pointed out once, and Settings offers the same switch.
