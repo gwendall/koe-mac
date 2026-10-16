@@ -35,12 +35,8 @@
 "Nothing was typed" = "Nada foi digitado";
 "RECOVERED" = "RECUPERADO";
 "Your last dictation is on the clipboard" = "Seu último ditado está na área de transferência";
-"NO ANSWER" = "SEM RESPOSTA";
-"Couldn't check for updates" = "Não foi possível buscar atualizações";
 "UP TO DATE" = "ATUALIZADO";
 "Koe %@ is the latest" = "O Koe %@ é a versão mais recente";
-"KOE %@ IS OUT" = "O KOE %@ SAIU";
-"Get it from koe.fm" = "Baixe em koe.fm";
 "REPORT COPIED" = "RELATÓRIO COPIADO";
 "No dictated text is in it" = "Não inclui nenhum texto ditado";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "Clique e pressione o atalho que quiser";
 "Add a word" = "Adicionar uma palavra";
 "Add" = "Adicionar";
-"Sounds" = "Sons";
 "Open at Login" = "Abrir no Início da Sessão";
 "Update Automatically" = "Atualizar Automaticamente";
 "Something wrong?" = "Algum problema?";
@@ -198,3 +193,12 @@
 "Keep fn" = "Manter fn";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "Nada ao pressionar %@? Talvez outro app a pegue antes: dê outra tecla ao Koe abaixo.";
 "Use %@" = "Usar %@";
+"UPDATED TO %@" = "ATUALIZADO PARA %@";
+"What's New is in the menu" = "As novidades estão no menu";
+"CAN'T CHECK" = "NÃO DÁ PARA VERIFICAR";
+"GitHub did not answer, try again later" = "O GitHub não respondeu, tente de novo mais tarde";
+"CAN'T UPDATE ITSELF" = "ATUALIZAÇÃO MANUAL";
+"Get Koe %@ at koe.fm" = "Baixe o Koe %@ em koe.fm";
+"UPDATING" = "ATUALIZANDO";
+"To Koe %@, back in a moment" = "Para o Koe %@, já volto";
+"Sound" = "Som";

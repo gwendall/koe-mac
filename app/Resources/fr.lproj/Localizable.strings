@@ -35,12 +35,8 @@
 "Nothing was typed" = "Rien n’a été écrit";
 "RECOVERED" = "RÉCUPÉRÉ";
 "Your last dictation is on the clipboard" = "Votre dernière dictée est dans le presse-papiers";
-"NO ANSWER" = "PAS DE RÉPONSE";
-"Couldn't check for updates" = "Impossible de rechercher les mises à jour";
 "UP TO DATE" = "À JOUR";
 "Koe %@ is the latest" = "Koe %@ est la dernière version";
-"KOE %@ IS OUT" = "KOE %@ EST SORTI";
-"Get it from koe.fm" = "Téléchargez-le sur koe.fm";
 "REPORT COPIED" = "RAPPORT COPIÉ";
 "No dictated text is in it" = "Il ne contient aucun texte dicté";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "Cliquez, puis appuyez sur le raccourci voulu";
 "Add a word" = "Ajouter un mot";
 "Add" = "Ajouter";
-"Sounds" = "Sons";
 "Open at Login" = "Ouvrir avec la session";
 "Update Automatically" = "Mettre à jour automatiquement";
 "Something wrong?" = "Un problème ?";
@@ -183,7 +178,7 @@
 "Left" = "À gauche";
 "Right" = "À droite";
 "Drag Koe into the list" = "Faites glisser Koe dans la liste";
-"Koe could not move itself: %@. Drag it into Applications instead." = "Koe n’a pas pu se déplacer : %@. Faites-le plutôt glisser dans Applications.";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe n’a pas pu se déplacer : %@. Faites-le plutôt glisser dans Applications.";
 "Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe est ouvert depuis l’image disque. Depuis Applications, macOS garde ses autorisations, et il peut s’ouvrir avec la session.";
 "Not in it? Drag the bubble into the list." = "Absent ? Faites glisser la bulle dans la liste.";
 "Pill while you talk" = "Pastille pendant la dictée";
@@ -198,3 +193,12 @@
 "Keep fn" = "Garder fn";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "Rien quand vous appuyez sur %@ ? Une autre app le prend peut-être avant : donnez une autre touche à Koe, plus bas.";
 "Use %@" = "Utiliser %@";
+"UPDATED TO %@" = "VERSION %@ INSTALLÉE";
+"What's New is in the menu" = "Les nouveautés sont dans le menu";
+"CAN'T CHECK" = "VÉRIFICATION IMPOSSIBLE";
+"GitHub did not answer, try again later" = "GitHub n’a pas répondu, réessayez plus tard";
+"CAN'T UPDATE ITSELF" = "MISE À JOUR MANUELLE";
+"Get Koe %@ at koe.fm" = "Téléchargez Koe %@ sur koe.fm";
+"UPDATING" = "MISE À JOUR";
+"To Koe %@, back in a moment" = "Vers Koe %@, de retour dans un instant";
+"Sound" = "Son";

@@ -69,7 +69,7 @@ enum Windows {
     }
 
     private static func present(_ window: NSWindow) {
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
 }
@@ -397,7 +397,7 @@ struct Welcome: View {
         .onAppear {
             // The box must be where the words go, even when the step was
             // reached with Koe in the background.
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             Windows.welcomeWindow?.makeKeyAndOrderFront(nil)
             practiceFocused = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { if !heard { silent = true } }
@@ -657,7 +657,7 @@ struct SettingsView: View {
                 Picker(Words.say("Pill while you talk"), selection: $state.place) {
                     ForEach(Indicator.Place.allCases) { place in Text(place.name).tag(place) }
                 }
-                Toggle(Words.say("Sounds"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
+                Toggle(Words.say("Sound"), isOn: Binding(get: { !state.muted }, set: { state.muted = !$0 }))
                 Toggle(Words.say("Open at Login"), isOn: Binding(get: { state.login }, set: { state.setLogin($0) }))
                 Toggle(Words.say("Update Automatically"), isOn: $state.updates)
                 LabeledContent(Words.say("Something wrong?")) {

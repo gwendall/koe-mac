@@ -35,12 +35,8 @@
 "Nothing was typed" = "Non è stato scritto nulla";
 "RECOVERED" = "RECUPERATO";
 "Your last dictation is on the clipboard" = "L’ultima dettatura è negli appunti";
-"NO ANSWER" = "NESSUNA RISPOSTA";
-"Couldn't check for updates" = "Impossibile verificare gli aggiornamenti";
 "UP TO DATE" = "AGGIORNATO";
 "Koe %@ is the latest" = "Koe %@ è l’ultima versione";
-"KOE %@ IS OUT" = "È USCITO KOE %@";
-"Get it from koe.fm" = "Scaricalo da koe.fm";
 "REPORT COPIED" = "REPORT COPIATO";
 "No dictated text is in it" = "Non contiene nessun testo dettato";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "Fai clic, poi premi la scorciatoia che vuoi";
 "Add a word" = "Aggiungi una parola";
 "Add" = "Aggiungi";
-"Sounds" = "Suoni";
 "Open at Login" = "Apri al login";
 "Update Automatically" = "Aggiorna automaticamente";
 "Something wrong?" = "Qualcosa non va?";
@@ -183,7 +178,7 @@
 "Left" = "A sinistra";
 "Right" = "A destra";
 "Drag Koe into the list" = "Trascina Koe nell’elenco";
-"Koe could not move itself: %@. Drag it into Applications instead." = "Koe non è riuscito a spostarsi: %@. Trascinalo invece in Applicazioni.";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe non è riuscito a spostarsi: %@. Trascinalo tu in Applicazioni.";
 "Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe è aperto dall’immagine disco. Da Applicazioni, macOS ne conserva i permessi e può aprirsi al login.";
 "Not in it? Drag the bubble into the list." = "Non c’è? Trascina la bolla nell’elenco.";
 "Pill while you talk" = "Pillola mentre parli";
@@ -198,3 +193,12 @@
 "Keep fn" = "Tieni fn";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "Niente quando premi %@? Forse un’altra app lo prende prima: dai a Koe un altro tasto qui sotto.";
 "Use %@" = "Usa %@";
+"UPDATED TO %@" = "AGGIORNATO A %@";
+"What's New is in the menu" = "Le novità sono nel menu";
+"CAN'T CHECK" = "IMPOSSIBILE VERIFICARE";
+"GitHub did not answer, try again later" = "GitHub non ha risposto, riprova più tardi";
+"CAN'T UPDATE ITSELF" = "AGGIORNAMENTO MANUALE";
+"Get Koe %@ at koe.fm" = "Scarica Koe %@ da koe.fm";
+"UPDATING" = "AGGIORNAMENTO";
+"To Koe %@, back in a moment" = "A Koe %@, torno subito";
+"Sound" = "Suono";

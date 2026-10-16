@@ -1,6 +1,6 @@
 import Foundation
 
-// Koe's sounds: Wham's 25% pulse wave, in A major instead of E (docs/brand.md).
+// Koe's sounds: a 25% pulse wave, in A major (docs/brand.md).
 // Synthesized when first played, so they ship as code, not as files.
 enum Chime {
     static let rate = 44_100.0

@@ -2,7 +2,7 @@ import AppKit
 import CoreText
 import QuartzCore
 
-// Wham's pill (docs/brand.md), dropping out of the menu bar under Koe's
+// The pill (docs/brand.md), dropping out of the menu bar under Koe's
 // bubble: whatever Koe has to tell you, said once, then gone. The dictation
 // itself shows low on the screen (`Indicator`). The title is in pixel letters
 // (`TitleFont`) and comes in letter by letter; the line under it explains.
@@ -278,7 +278,7 @@ enum TitleFont {
         return letters
     }
 
-    // Silkscreen leaves two of its pixels between capitals: one is enough, as Wham does.
+    // Silkscreen leaves two of its pixels between capitals: one is enough.
     static func line(_ letters: [Letter]) -> CTLine {
         let line = NSMutableAttributedString()
         for letter in letters {

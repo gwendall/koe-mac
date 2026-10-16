@@ -91,7 +91,7 @@ func render(_ size: Int) -> CGImage {
     // Whole pixels per cell, and as many pixels on each side of the bubble:
     // the nearest cell size whose bubble leaves an even margin.
     // The face's bubble fills 15 of its 21 cells: 0.77 of the squircle gives it
-    // the share of it Wham's sun has.
+    // the share of it the brand sets (docs/brand.md).
     let target = body.width * (size >= 64 ? 0.77 : 0.6) / CGFloat(cells)
     var cell = target.rounded()
     if (size - Int(cell) * cells) % 2 != 0 { cell += target > cell ? 1 : -1 }

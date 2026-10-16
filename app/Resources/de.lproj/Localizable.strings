@@ -35,12 +35,8 @@
 "Nothing was typed" = "Es wurde nichts getippt";
 "RECOVERED" = "GERETTET";
 "Your last dictation is on the clipboard" = "Dein letztes Diktat ist in der Zwischenablage";
-"NO ANSWER" = "KEINE ANTWORT";
-"Couldn't check for updates" = "Updates konnten nicht geprüft werden";
 "UP TO DATE" = "AKTUELL";
 "Koe %@ is the latest" = "Koe %@ ist die neueste Version";
-"KOE %@ IS OUT" = "KOE %@ IST DA";
-"Get it from koe.fm" = "Lade es von koe.fm";
 "REPORT COPIED" = "BERICHT KOPIERT";
 "No dictated text is in it" = "Kein diktierter Text ist darin";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "Klicken, dann den gewünschten Kurzbefehl drücken";
 "Add a word" = "Wort hinzufügen";
 "Add" = "Hinzufügen";
-"Sounds" = "Töne";
 "Open at Login" = "Bei der Anmeldung öffnen";
 "Update Automatically" = "Automatisch aktualisieren";
 "Something wrong?" = "Ein Problem?";
@@ -183,7 +178,7 @@
 "Left" = "Links";
 "Right" = "Rechts";
 "Drag Koe into the list" = "Zieh Koe in die Liste";
-"Koe could not move itself: %@. Drag it into Applications instead." = "Koe konnte sich nicht bewegen: %@. Zieh es stattdessen in „Programme“.";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe konnte sich nicht bewegen: %@. Zieh es stattdessen in den Ordner „Programme“.";
 "Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe läuft vom Disk-Image. Aus „Programme“ behält macOS seine Berechtigungen, und es kann beim Anmelden starten.";
 "Not in it? Drag the bubble into the list." = "Nicht dabei? Zieh die Blase in die Liste.";
 "Pill while you talk" = "Pille beim Sprechen";
@@ -198,3 +193,12 @@
 "Keep fn" = "fn behalten";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "Nichts, wenn du %@ drückst? Vielleicht fängt eine andere App die Taste ab: Gib Koe unten eine andere Taste.";
 "Use %@" = "%@ verwenden";
+"UPDATED TO %@" = "AKTUALISIERT AUF %@";
+"What's New is in the menu" = "Neuigkeiten findest du im Menü";
+"CAN'T CHECK" = "PRÜFEN NICHT MÖGLICH";
+"GitHub did not answer, try again later" = "GitHub hat nicht geantwortet, versuch es später noch mal";
+"CAN'T UPDATE ITSELF" = "MANUELLES UPDATE";
+"Get Koe %@ at koe.fm" = "Hol dir Koe %@ auf koe.fm";
+"UPDATING" = "UPDATE LÄUFT";
+"To Koe %@, back in a moment" = "Auf Koe %@, gleich wieder da";
+"Sound" = "Ton";

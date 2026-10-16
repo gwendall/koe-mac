@@ -35,12 +35,8 @@
 "Nothing was typed" = "Nothing was typed";
 "RECOVERED" = "RECOVERED";
 "Your last dictation is on the clipboard" = "Your last dictation is on the clipboard";
-"NO ANSWER" = "NO ANSWER";
-"Couldn't check for updates" = "Couldn't check for updates";
 "UP TO DATE" = "UP TO DATE";
 "Koe %@ is the latest" = "Koe %@ is the latest";
-"KOE %@ IS OUT" = "KOE %@ IS OUT";
-"Get it from koe.fm" = "Get it from koe.fm";
 "REPORT COPIED" = "REPORT COPIED";
 "No dictated text is in it" = "No dictated text is in it";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "Click, then press the shortcut you want";
 "Add a word" = "Add a word";
 "Add" = "Add";
-"Sounds" = "Sounds";
 "Open at Login" = "Open at Login";
 "Update Automatically" = "Update Automatically";
 "Something wrong?" = "Something wrong?";
@@ -198,3 +193,12 @@
 "Keep fn" = "Keep fn";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "Nothing when you press %@? Another app may take it first: give Koe another key below.";
 "Use %@" = "Use %@";
+"UPDATED TO %@" = "UPDATED TO %@";
+"What's New is in the menu" = "What's New is in the menu";
+"CAN'T CHECK" = "CAN'T CHECK";
+"GitHub did not answer, try again later" = "GitHub did not answer, try again later";
+"CAN'T UPDATE ITSELF" = "CAN'T UPDATE ITSELF";
+"Get Koe %@ at koe.fm" = "Get Koe %@ at koe.fm";
+"UPDATING" = "UPDATING";
+"To Koe %@, back in a moment" = "To Koe %@, back in a moment";
+"Sound" = "Sound";

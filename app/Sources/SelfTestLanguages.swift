@@ -1,7 +1,7 @@
 import AppKit
 import CoreText
 
-// The words in each language, as Wham checks them: every <language>.lproj in
+// The words in each language: every <language>.lproj in
 // the app says what the English one does, with the same blanks (%@ and %d, in
 // order or numbered), nothing the house style refuses, and pill titles every
 // letter of which the pixel font (or the language's face) can draw.

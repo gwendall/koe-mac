@@ -35,9 +35,11 @@ enum Shots {
             ("cancelled", Toast.note(Words.say("CANCELLED"), Words.say("Nothing was typed"))),
             ("polishing-on", Toast.note(Words.say("POLISHING IS ON"), Words.say("Your words are polished before they're typed"))),
             ("recovered", Toast.note(Words.say("RECOVERED"), Words.say("Your last dictation is on the clipboard"))),
-            ("no-answer", Toast.note(Words.say("NO ANSWER"), Words.say("Couldn't check for updates"))),
+            ("no-answer", Toast.note(Words.say("CAN'T CHECK"), Words.say("GitHub did not answer, try again later"))),
             ("up-to-date", Toast.note(Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", "2.0.0"))),
-            ("out", Toast.note(Words.say("KOE %@ IS OUT", "2.0.1"), Words.say("Get it from koe.fm"))),
+            ("out", Toast.note(Words.say("CAN'T UPDATE ITSELF"), Words.say("Get Koe %@ at koe.fm", "2.0.1"))),
+            ("updating", Toast.note(Words.say("UPDATING"), Words.say("To Koe %@, back in a moment", "2.0.1"))),
+            ("updated", Toast.note(Words.say("UPDATED TO %@", "2.0.1"), Words.say("What's New is in the menu"))),
             ("report-copied", Toast.note(Words.say("REPORT COPIED"), Words.say("No dictated text is in it"))),
         ]
         for (name, style) in styles {

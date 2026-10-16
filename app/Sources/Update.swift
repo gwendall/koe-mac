@@ -1,6 +1,6 @@
 import Foundation
 
-// Koe keeps itself up to date, as Wham does. A few times a day it asks GitHub
+// Koe keeps itself up to date. A few times a day it asks GitHub
 // which release is the latest; when that one is newer it downloads it, makes
 // sure Koe's developer signed it and that it runs, and swaps it in. The
 // request carries nothing about the Mac or its user. Blocking calls: run them
@@ -24,6 +24,14 @@ enum Update {
         guard status == 0, let answer, let range = answer.range(of: "/tag/v") else { return nil }
         let version = String(answer[range.upperBound...])
         return numbers(version) == nil ? nil : version
+    }
+
+    // The first launch of a newer version than the one that ran last. A first
+    // launch ever is not an update; a copy from before Koe kept count is.
+    static func isUpdate(to current: String, from last: String?, ranBefore: Bool) -> Bool {
+        guard ranBefore, numbers(current) != nil else { return false }
+        guard let last else { return true }
+        return isNewer(current, than: last)
     }
 
     static func isNewer(_ candidate: String, than current: String) -> Bool {

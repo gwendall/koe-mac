@@ -37,7 +37,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var permissionTimer: Timer?
     private var updateTimer: Timer?
-    // The update check, and the menu while open (Wham's way, see checkForUpdate).
+    // The update check, and the menu while open (see checkForUpdate).
     private var updating = false
     private var asked = false
     private var available: String?
@@ -80,7 +80,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         show(Pixels.ready)
         item.button?.setAccessibilityLabel("Koe")
-        // Opened by hand (showMenu), as Wham's: attached to the status item,
+        // Opened by hand (showMenu): attached to the status item,
         // macOS would close the menu on a click in a row meant to keep it open.
         menu.delegate = self
         item.button?.target = self
@@ -123,17 +123,26 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preparePolish()
         scheduleUpdates()
 
-        if !UserDefaults.standard.bool(forKey: "welcomed") {
+        // The first launch of a newer version says which one it is.
+        let defaults = UserDefaults.standard
+        let updated = Update.isUpdate(to: Update.running, from: defaults.string(forKey: "lastVersion"),
+                                      ranBefore: defaults.bool(forKey: "welcomed"))
+        if !Self.runsFromTemporaryCopy { defaults.set(Update.running, forKey: "lastVersion") }
+        if !defaults.bool(forKey: "welcomed") {
             Windows.showWelcome(state)
         } else if state.microphone == false || !state.accessibility {
             pop(Toast.note(Words.say("KOE NEEDS YOU"), Words.say("Click the bubble, then Settings")))
+        } else if updated {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.pop(Toast.note(Words.say("UPDATED TO %@", Update.running), Words.say("What's New is in the menu")))
+            }
         }
     }
 
     // Opened from the disk image, or from Downloads (macOS then runs a hidden
     // copy of it), Koe gets its permissions on that copy, which the list in
     // System Settings may not even show, and loses them next time: it offers
-    // to move itself first, as Wham does.
+    // to move itself first.
     private static var runsFromTemporaryCopy: Bool { isTemporary(Bundle.main.bundlePath) }
 
     private static func isTemporary(_ path: String) -> Bool {
@@ -146,7 +155,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ask.informativeText = Words.say("Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login.")
         ask.addButton(withTitle: Words.say("Move to Applications"))
         ask.addButton(withTitle: Words.say("Not Now"))
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         guard ask.runModal() == .alertFirstButtonReturn else {
             Log.note("move", ["answer": "not now"])
             return false
@@ -803,7 +812,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if gained || state.accessibility { guide.hide() }
         guard let window = steppedAside else { return }
         steppedAside = nil
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -891,21 +900,25 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Updates
 
+    // A few times a day, and not right at login, while the network wakes up.
     private func scheduleUpdates() {
+        guard !Self.runsFromTemporaryCopy else { return }
         updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkForUpdate(asked: false) }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
+        updateTimer?.tolerance = 1800
+        let delay = UserDefaults.standard.double(forKey: "updateDelay")
+        DispatchQueue.main.asyncAfter(deadline: .now() + (delay > 0 ? delay : 60)) { [weak self] in
             MainActor.assumeIsolated { self?.checkForUpdate(asked: false) }
         }
     }
 
     // Checks GitHub, off the main thread; installs a newer Koe when updates
-    // are automatic or it was asked for. Asked from the menu, the update row
-    // says how it went, the menu staying open; otherwise a pill does.
+    // are automatic or it was asked for, and otherwise offers it in the menu.
+    // Asked from the menu, the update row says how it went, the menu staying
+    // open; otherwise a pill does.
     private func checkForUpdate(asked: Bool) {
         if asked { self.asked = true }
-        guard asked || Update.isOn else { return }
         guard !updating else { return }
         updating = true
         let app = Bundle.main.bundleURL, running = Update.running
@@ -935,12 +948,14 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.note("update", ["latest": latest ?? "no answer", "newer": newer != nil, "asked": asked, "replaceable": replaceable])
         if latest != nil { available = newer }
         guard let newer else {
-            return settle(latest == nil ? (Words.say("NO ANSWER"), Words.say("Couldn't check for updates"), .said(Line.noAnswer), .refused)
+            return settle(latest == nil ? (Words.say("CAN'T CHECK"), Words.say("GitHub did not answer, try again later"), .said(Line.noAnswer), .refused)
                                         : (Words.say("UP TO DATE"), Words.say("Koe %@ is the latest", Update.running), .done(Line.latest(Update.running)), .check(true)))
         }
+        // Updates off: offered in the menu, installed only when asked.
+        guard asked || Update.isOn else { return settle(nil) }
         // A build from source, or a folder Koe can't write to: koe.fm has it.
         guard replaceable else {
-            return settle((Words.say("KOE %@ IS OUT", newer), Words.say("Get it from koe.fm"), nil, .select), openSite: true)
+            return settle((Words.say("CAN'T UPDATE ITSELF"), Words.say("Get Koe %@ at koe.fm", newer), nil, .select), openSite: true)
         }
         install(newer)
     }
@@ -949,7 +964,11 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func install(_ version: String) {
         guard phase == .idle else { return Self.after(30) { [weak self] in self?.install(version) } }
         installing = version
-        updateRow?.state = updateState
+        if let updateRow {
+            updateRow.state = updateState
+        } else if asked {
+            pop(Toast.note(Words.say("UPDATING"), Words.say("To Koe %@, back in a moment", version)))
+        }
         let app = Bundle.main.bundleURL
         DispatchQueue.global(qos: .utility).async {
             let failure = Update.install(version, over: app)
@@ -989,7 +1008,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return available.map { .offer(Line.update(to: $0)) } ?? .action(Line.check)
     }
 
-    // What the update row says, each line written once (Wham's lines).
+    // What the update row says, each line written once.
     private enum Line {
         static var check: String { Words.say("Check for Updates") }
         static var checking: String { Words.say("Checking for Updates…") }
@@ -1013,7 +1032,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - The menu
 
-    // Wham's menu, Koe's lines: the state in gray; the last dictations, a
+    // The menu: the state in gray; the last dictations, a
     // click copying one; options as rows that keep the menu open on a click;
     // About, What's New, the update row (it checks right there) and the
     // author; Quit. As narrow as its lines allow: dictations are cut to fit.
@@ -1053,7 +1072,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        let submits = Words.say("Press Return after typing"), polish = Words.say("Polish the words"), sounds = Words.say("Sounds")
+        let submits = Words.say("Press Return after typing"), polish = Words.say("Polish the words"), sounds = Words.say("Sound")
         menu.addItem(row([submits], content: { [unowned self] in .init(title: submits, checked: state.submits) }) { [unowned self] in
             state.submits.toggle()
             state.save()
@@ -1094,7 +1113,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func clicked() { showMenu() }
 
     // Hangs from the menu bar's bottom edge under the bubble, as a status
-    // menu does (Wham's showMenu), the bubble lit while it is open.
+    // menu does, the bubble lit while it is open.
     private func showMenu() {
         guard let button = item.button, let window = button.window else { return }
         let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
@@ -1154,7 +1173,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         view.onClick = { [weak self, weak view] in
             guard let self else { return }
             // An update on offer goes through the check again, which installs
-            // it only where Koe can replace itself (else: koe.fm), as Wham's.
+            // it only where Koe can replace itself (else: koe.fm).
             self.play(.select)
             self.checkForUpdate(asked: true)
             view?.state = self.updateState
@@ -1238,7 +1257,13 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             UserDefaults.standard.set(on ? Bundle.main.bundlePath : nil, forKey: "loginPath")
-            play(.check(on))
+            // macOS may hold the item for approval: its page in System Settings says so.
+            if on, SMAppService.mainApp.status == .requiresApproval {
+                play(.refused)
+                SMAppService.openSystemSettingsLoginItems()
+            } else {
+                play(.check(on))
+            }
         } catch {
             play(.refused)
         }
@@ -1292,8 +1317,9 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.image = icon
     }
 
+    // Never over an open menu: the menu says it all.
     private func pop(_ style: Toast.Style) {
-        guard let button = item.button, let window = button.window else { return }
+        guard openMenu == nil, let button = item.button, let window = button.window else { return }
         toast.show(style, under: window.convertToScreen(button.convert(button.bounds, to: nil)))
     }
 

@@ -32,7 +32,7 @@ Short, plain, friendly. Say what happens to the words, not what the app is.
 - The pill from the menu bar is for what Koe has to say: copied (with the
   words' first few), no sound, recovered, a permission missing.
 - First launch: **HI, I'M KOE** - Hold Fn and talk
-- The app speaks the Mac's language, as Wham does.
+- The app speaks the Mac's language, in ten languages, as macOS names its own menus.
 
 ## Colors
 
@@ -42,7 +42,7 @@ Short, plain, friendly. Say what happens to the words, not what the app is.
 | cherry | `#ff7a7a` | gradient middle |
 | violet | `#b07bff` | gradient end |
 | ink | `#1a0b17` | the outline, text on candy |
-| butter | `#fff1b8` | the bubble's face, as on Wham's sun |
+| butter | `#fff1b8` | the bubble's face |
 | blush | `#ff8fc8` | cheeks and tongue |
 | night | `#0f0a14` | dark backgrounds |
 | pill | `#141414` | the dark pill |
@@ -55,7 +55,7 @@ cold, and butter drowns in peach.
 
 ## Type
 
-As Wham: **Silkscreen** (SIL Open Font License 1.1), uppercase, at multiples
+**Silkscreen** (SIL Open Font License 1.1), uppercase, at multiples
 of 8 px, tracked -1/8 em; a rounded sans for the rest (SF Pro Rounded in the
 app, Nunito on the web).
 
@@ -68,7 +68,7 @@ No tail sticks out, so the bubble stays full and compact and never reads as a
 ghost.
 
 App icon, 21 x 21, `#` ink, `o` butter, `p` blush; happy eyes, cheeks, a mouth
-open on a laugh. It covers about 60% of the squircle, as Wham's sun does, so
+open on a laugh. It covers about 60% of the squircle, so
 the gradient breathes around it. The source of truth is `scripts/icon.swift`.
 
 ```
@@ -147,19 +147,19 @@ Typed (a smile):
 
 ## Toast
 
-Wham's pill, word for word: 52 pt, the sprite in its round end, the Silkscreen
+A 52 pt pill: the sprite in its round end, the Silkscreen
 title over a line in the body face, for messages only. A dictation has its
 own small pill low on the screen, bars and no words (see Voice).
 
 ## Sound
 
-Wham's wave, in A major instead of E. Two notes up when Koe starts listening
+A 25% pulse wave, like an old console's square channel, in A major. Two notes up when Koe starts listening
 (A5, E6), the same two down when it stops. Nothing when the words are typed:
 they show up, and a sound after every dictation would soon wear. A refusal
-falls out of the key, as Wham's. The four menu sounds are Wham's, transposed.
+falls out of the key. The four menu sounds (check, uncheck, select, refused) are on the same wave, in the same key.
 
 ## Motion
 
-Wham's springs: things arrive on a spring (ω 16, ζ 0.72), rising a few points
+Springs: things arrive on a spring (ω 16, ζ 0.72), rising a few points
 and growing from 0.92; they leave in 0.16 s, easing in. Letters of a title drop
 in one after the other, 22 ms apart.

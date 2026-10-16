@@ -35,12 +35,8 @@
 "Nothing was typed" = "아무것도 입력되지 않았습니다";
 "RECOVERED" = "복구됨";
 "Your last dictation is on the clipboard" = "마지막 받아쓰기가 클립보드에 있습니다";
-"NO ANSWER" = "응답 없음";
-"Couldn't check for updates" = "업데이트를 확인할 수 없습니다";
 "UP TO DATE" = "최신 버전";
 "Koe %@ is the latest" = "Koe %@, 최신 버전입니다";
-"KOE %@ IS OUT" = "KOE %@ 출시";
-"Get it from koe.fm" = "koe.fm에서 받으세요";
 "REPORT COPIED" = "보고서 복사됨";
 "No dictated text is in it" = "받아쓴 텍스트는 포함되지 않습니다";
 
@@ -115,7 +111,6 @@
 "Click, then press the shortcut you want" = "클릭한 다음 원하는 단축키를 누르세요";
 "Add a word" = "단어 추가";
 "Add" = "추가";
-"Sounds" = "사운드";
 "Open at Login" = "로그인 시 열기";
 "Update Automatically" = "자동으로 업데이트";
 "Something wrong?" = "문제가 있나요?";
@@ -183,7 +178,7 @@
 "Left" = "왼쪽";
 "Right" = "오른쪽";
 "Drag Koe into the list" = "Koe를 목록으로 드래그하세요";
-"Koe could not move itself: %@. Drag it into Applications instead." = "Koe를 옮기지 못했어요: %@. 대신 응용 프로그램으로 드래그하세요.";
+"Koe could not move itself: %@. Drag it into Applications instead." = "Koe을 이동하지 못했습니다: %@. 대신 응용 프로그램 폴더로 직접 끌어다 놓으세요.";
 "Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login." = "Koe가 디스크 이미지에서 실행 중이에요. 응용 프로그램에 두면 macOS가 권한을 유지하고, 로그인 시 열 수 있어요.";
 "Not in it? Drag the bubble into the list." = "목록에 없나요? 말풍선을 목록으로 드래그하세요.";
 "Pill while you talk" = "말하는 동안 표시";
@@ -198,3 +193,12 @@
 "Keep fn" = "fn 유지";
 "Nothing when you press %@? Another app may take it first: give Koe another key below." = "%@를 눌러도 반응이 없나요? 다른 앱이 먼저 가져갈 수 있어요. 아래에서 Koe에 다른 키를 지정하세요.";
 "Use %@" = "%@ 사용";
+"UPDATED TO %@" = "%@ 버전으로 업데이트됨";
+"What's New is in the menu" = "새로운 기능은 메뉴에 있습니다";
+"CAN'T CHECK" = "확인할 수 없음";
+"GitHub did not answer, try again later" = "GitHub가 응답하지 않습니다. 나중에 다시 시도하세요";
+"CAN'T UPDATE ITSELF" = "스스로 업데이트할 수 없음";
+"Get Koe %@ at koe.fm" = "Koe %@ 다운로드: koe.fm";
+"UPDATING" = "업데이트 중";
+"To Koe %@, back in a moment" = "Koe %@ 버전으로, 곧 돌아오겠습니다";
+"Sound" = "사운드";

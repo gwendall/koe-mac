@@ -26,8 +26,7 @@ no account, no cloud, nothing to choose.
 
 Koe needs an Apple silicon Mac with macOS 14 or later, the microphone, and
 Accessibility (to hear fn and to paste). It speaks the Mac's language: ten of
-them, as [Wham](https://github.com/gwendall/wham) does. On an Intel Mac, Koe
-0.1 (the earlier app, at [v0.koe.fm](https://v0.koe.fm)) still works.
+them. On an Intel Mac, Koe 0.1 (the earlier app, at [v0.koe.fm](https://v0.koe.fm)) still works.
 
 ## Install
 
@@ -73,10 +72,11 @@ update the Homebrew cask. Secrets it needs: `DEVELOPER_ID_P12`,
 To meet Koe as a newcomer again: `defaults delete fm.koe.mac` and
 `tccutil reset All fm.koe.mac`, then open it.
 
-Brand: [docs/brand.md](docs/brand.md). Made by Gwendall,
-[gwendall.com](https://gwendall.com).
+Brand: [docs/brand.md](docs/brand.md).
 
 ## Credits
+
+Made by [Gwendall](https://gwendall.com).
 
 Speech model: [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra)
 by moondream, a post-training of NVIDIA
@@ -87,3 +87,9 @@ FluidAudio (Apache-2.0). Polishing, when switched on: [Qwen3.5 2B](https://huggi
 (Apache-2.0, the Q4_K_M quantization by [Unsloth](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF),
 downloaded on the Mac that asks for it) through [llama.cpp](https://github.com/ggml-org/llama.cpp)
 (MIT, shipped in the app with its license). Pixel font: Silkscreen by Jason Kottke (SIL OFL 1.1).
+
+Talk. It types.
+
+## License
+
+[MIT](LICENSE)

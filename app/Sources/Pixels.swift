@@ -13,7 +13,7 @@ enum Pixels {
     static let listening = top + ["####...####", "####...####"] + bottom
     static let typed = top + ["###.###.###", "####...####"] + bottom
 
-    // An update waiting, in the menu's update row: Wham's dot.
+    // An update waiting, in the menu's update row: a dot.
     static let dot = [".####.", "######", "######", "######", "######", ".####."]
 
     // The sprite's cells as squares of `cell` points, from `origin` (bottom left).
