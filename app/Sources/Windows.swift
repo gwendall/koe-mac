@@ -69,8 +69,7 @@ enum Windows {
     }
 
     private static func present(_ window: NSWindow) {
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        Front.bring(window)
     }
 }
 
@@ -397,8 +396,7 @@ struct Welcome: View {
         .onAppear {
             // The box must be where the words go, even when the step was
             // reached with Koe in the background.
-            NSApp.activate()
-            Windows.welcomeWindow?.makeKeyAndOrderFront(nil)
+            if let window = Windows.welcomeWindow { Front.bring(window) }
             practiceFocused = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { if !heard { silent = true } }
             state.tryIt = { text in
