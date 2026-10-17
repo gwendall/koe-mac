@@ -155,7 +155,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ask.informativeText = Words.say("Koe is running from the disk image. From Applications, macOS keeps its permissions, and it can open at login.")
         ask.addButton(withTitle: Words.say("Move to Applications"))
         ask.addButton(withTitle: Words.say("Not Now"))
-        NSApp.activate()
+        Front.bring(ask)
         guard ask.runModal() == .alertFirstButtonReturn else {
             Log.note("move", ["answer": "not now"])
             return false
@@ -172,6 +172,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Log.note("move", ["to": folder.path, "failed": error.localizedDescription])
             let failed = NSAlert()
             failed.messageText = Words.say("Koe could not move itself: %@. Drag it into Applications instead.", error.localizedDescription)
+            Front.bring(failed)
             failed.runModal()
             return false
         }
@@ -812,8 +813,7 @@ final class Koe: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if gained || state.accessibility { guide.hide() }
         guard let window = steppedAside else { return }
         steppedAside = nil
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        Front.bring(window)
     }
 
     // Every 1.5 s until both permissions are on: no relaunch needed.
