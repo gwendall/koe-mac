@@ -5,6 +5,10 @@ What changed in each version of Koe, newest first. Also on
 
 <!-- Made from the changelog on koe.fm: edit it there, not here. -->
 
+## 2.2.5 - 2026-10-18
+
+- Settings, the welcome window and Koe's alerts now always come to the front. Before, they could open behind the app you were using, or stay behind it when you asked for them again.
+
 ## 2.2.4 - 2026-10-16
 
 - After an update, Koe says which version it now is, and that What's New is in the menu.
